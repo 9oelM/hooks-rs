@@ -1,0 +1,17 @@
+[package]
+name = "hooks-rs"
+version = "0.0.0"
+edition = "2021"
+authors = ["9oelm <messagejoel@outlook.com>"]
+description = "Hooks in Rust for the XRP Ledger"
+license = "MIT"
+repository = "https://github.com/9oelm/hooks-rs/"
+readme = "README.md"
+keywords = ["xrp", "xrpl", "hook", "hooks"]
+categories = ["wasm", "no-std"]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.37"
+
+[build-dependencies]
+bindgen = "0.66.1"

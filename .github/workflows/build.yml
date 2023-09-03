@@ -1,0 +1,36 @@
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+name: "Build"
+
+jobs:
+  build:
+    name: "Build Rust source code"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout source code"
+        uses: "actions/checkout@v3"
+
+      - name: "Use Rust Nightly"
+        uses: "actions-rs/toolchain@v1"
+        with:
+          toolchain: "nightly"
+          profile: "minimal"
+          components: "clippy,rustfmt"
+          override: true
+
+      - name: "Use Rust cache"
+        uses: "Swatinem/rust-cache@v2"
+        with:
+          cache-on-failure: true
+
+      - name: "Add wasm32-unknown-unknown target"
+        run: |
+          rustup target add wasm32-unknown-unknown
+
+      - name: "Build Rust project"
+        run: |
+          cargo build --all-targets
