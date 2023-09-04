@@ -23,6 +23,10 @@ jobs:
         with:
           cache-on-failure: true
 
+      - name: "Add wasm32-unknown-unknown target"
+        run: |
+          rustup target add wasm32-unknown-unknown
+
       - name: "Install udeps"
         uses: "actions-rs/cargo@v1"
         with:

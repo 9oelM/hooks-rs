@@ -33,4 +33,4 @@ jobs:
 
       - name: "Build Rust project"
         run: |
-          cargo build --all-targets
+          cargo build --target wasm32-unknown-unknown

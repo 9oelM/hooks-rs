@@ -45,4 +45,4 @@ jobs:
 
       - name: "Run Clippy lints"
         run: |
-          cargo clippy --all --all-targets -- -D warnings
+          cargo clippy --all -- -D warnings
