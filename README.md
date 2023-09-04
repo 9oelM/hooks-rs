@@ -2,6 +2,9 @@
 
 XRPL hooks in Rust.
 
+> [!WARNING]
+> The repository is not ready yet. You will need to use it at your own discretion.
+
 ## Prerequisites
 
 - Install Rust nightly.
