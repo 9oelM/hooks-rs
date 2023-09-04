@@ -4,7 +4,7 @@ on:
       - "main"
   pull_request:
 
-name: "test"
+name: "Test"
 
 jobs:
   test:
@@ -37,6 +37,22 @@ jobs:
           command: "install"
           args: "wasm-pack --locked --version 0.12.1"
 
+      - name: "Install hook cleaner"
+        run: |
+          git clone https://github.com/XRPLF/hook-cleaner-c
+          cd hook-cleaner-c
+          git reset --hard b856a3614c00361f108d07379f5892e7347bb994
+          make
+          chmod u+x hook-cleaner
+          echo $PWD >> $GITHUB_PATH
+
+      - name: "Setup Node.js test environment"
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: "./tests/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "tests/package-lock.json"
+
       - name: "Run lib tests"
         run: |
           wasm-pack test --node
@@ -45,6 +61,8 @@ jobs:
         run: |
           cargo build --examples
 
-      # TODO: do what https://github.com/Transia-RnD/hooks-toolkit-ts/blob/main/.github/workflows/nodejs.yml does
-      # - name: "Run examples"
-      #   run: |
+      - name: "Run integration tests"
+        run: |
+          cd tests
+          npm ci
+          npm test
