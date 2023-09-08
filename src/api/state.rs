@@ -30,5 +30,5 @@ pub fn state_foreign(data: &mut [u8], key: &[u8], namespace: &[u8], accid: &[u8]
         )
     };
 
-    result_u64(res)
+    res.into()
 }

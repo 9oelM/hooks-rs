@@ -31,7 +31,7 @@ pub fn slot_id(buf: &mut [u8], slot_no: u32) -> Result<u64> {
 pub fn slot_set(keylet: &[u8], slot_no: u32) -> Result<u64> {
     let res = unsafe { c::slot_set(keylet.as_ptr() as u32, keylet.len() as u32, slot_no) };
 
-    result_u64(res)
+    res.into()
 }
 
 /// Compute the serialized size of an object in a slot
@@ -84,5 +84,5 @@ pub fn slot_type(slot_no: u32, flags: SlotTypeFlags) -> Result<FieldOrXrpAmount>
 pub fn slot_float(slot_no: u32) -> Result<XFL> {
     let res = unsafe { c::slot_float(slot_no) };
 
-    result_xfl(res)
+    res.into()
 }

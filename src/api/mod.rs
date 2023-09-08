@@ -605,28 +605,28 @@ type BufWriter1Arg = Api3ArgsU32;
 fn api_1arg_call(arg: u32, fun: Api1ArgsU32) -> Result<u64> {
     let res = unsafe { fun(arg) };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
 fn api_3arg_call(arg_1: u32, arg_2: u32, arg_3: u32, fun: Api3ArgsU32) -> Result<u64> {
     let res = unsafe { fun(arg_1, arg_2, arg_3) };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
 fn buf_write(buf_write: &mut [u8], fun: BufWriter) -> Result<u64> {
     let res = unsafe { fun(buf_write.as_mut_ptr() as u32, buf_write.len() as u32) };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
 fn buf_write_1arg(buf_write: &mut [u8], arg: u32, fun: BufWriter1Arg) -> Result<u64> {
     let res = unsafe { fun(buf_write.as_mut_ptr() as u32, buf_write.len() as u32, arg) };
 
-    result_u64(res)
+    res.into()
 }
 
 // Quick fix for functions that have 1 argument of type i32
@@ -634,14 +634,14 @@ fn buf_write_1arg(buf_write: &mut [u8], arg: u32, fun: BufWriter1Arg) -> Result<
 fn buf_write_1arg_i32(buf_write: &mut [u8], arg: i32, fun: Api3ArgsU32AndI32) -> Result<u64> {
     let res = unsafe { fun(buf_write.as_mut_ptr() as u32, buf_write.len() as u32, arg) };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
 fn buf_read(buf: &[u8], fun: BufReader) -> Result<u64> {
     let res = unsafe { fun(buf.as_ptr() as u32, buf.len() as u32) };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -655,7 +655,7 @@ fn buf_2read(buf_1: &[u8], buf_2: &[u8], fun: Buf2Reader) -> Result<u64> {
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -669,7 +669,7 @@ fn buf_write_read(buf_write: &mut [u8], buf_read: &[u8], fun: BufWriterReader) -
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -690,7 +690,7 @@ fn buf_3_read(
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -720,7 +720,7 @@ fn all_zeroes(buf_write: &mut [u8], keylet_type_c: u32) -> Result<u64> {
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -739,7 +739,7 @@ fn buf_read_and_zeroes(buf_write: &mut [u8], buf_read: &[u8], keylet_type_c: u32
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -763,7 +763,7 @@ fn buf_read_and_1_arg(
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -788,7 +788,7 @@ fn buf_read_and_2_args(
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 #[inline(always)]
@@ -812,21 +812,32 @@ fn buf_2_read_and_zeroes(
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
-#[inline(always)]
-fn result_u64(res: i64) -> Result<u64> {
-    match res {
-        res if res >= 0 => Ok(res as _),
-        _ => Err(Error::from_code(res as _)),
+impl From<i64> for Result<u64> {
+    #[inline(always)]
+    fn from(res: i64) -> Self {
+        match res {
+            res if res >= 0 => Ok(res as _),
+            _ => Err(Error::from_code(res as _)),
+        }
     }
 }
 
-#[inline(always)]
-fn result_xfl(res: i64) -> Result<XFL> {
-    match res {
-        res if res >= 0 => Ok(XFL(res)),
-        _ => Err(Error::from_code(res as _)),
+impl From<i64> for Result<XFL> {
+    #[inline(always)]
+    fn from(res: i64) -> Self {
+        match res {
+            res if res >= 0 => Ok(XFL(res)),
+            _ => Err(Error::from_code(res as _)),
+        }
+    }
+}
+
+impl From<Error> for i64 {
+    #[inline(always)]
+    fn from(err: Error) -> Self {
+        err as _
     }
 }

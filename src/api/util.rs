@@ -69,7 +69,7 @@ pub fn util_keylet(keylet: &mut [u8], keylet_type: KeyletType) -> Result<u64> {
                     )
                 };
 
-                result_u64(res)
+                res.into()
             }
         },
 
@@ -92,7 +92,7 @@ pub fn util_keylet(keylet: &mut [u8], keylet_type: KeyletType) -> Result<u64> {
                 )
             };
 
-            result_u64(res)
+            res.into()
         }
 
         KeyletType::Offer(accid, num) => buf_read_and_1_arg(keylet, accid, num, c::KEYLET_OFFER),
@@ -140,7 +140,7 @@ pub fn util_keylet(keylet: &mut [u8], keylet_type: KeyletType) -> Result<u64> {
                 )
             };
 
-            result_u64(res)
+            res.into()
         }
 
         KeyletType::Emitted(key) => buf_read_and_zeroes(keylet, key, c::KEYLET_EMITTED),
