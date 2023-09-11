@@ -38,7 +38,7 @@ pub extern "C" fn hook(_: u32) -> i64 {
         set_count(count + 1, &hook_account);
         let count_again = get_count(&hook_account);
 
-        accept(count_again.to_be_bytes().as_ref(), 0);
+        accept(&count_again.to_be_bytes(), 0);
     }
 }
 
