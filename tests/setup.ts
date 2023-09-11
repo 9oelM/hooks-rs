@@ -45,10 +45,10 @@ export class Faucet {
     while (tries < 20) {
       try {
         resp = await Faucet.getNewAccount();
-      // ignore errors
+        // ignore errors
       } catch (e) {}
 
-      if (resp && "error" in resp || !resp) {
+      if ((resp && "error" in resp) || !resp) {
         await new Promise((resolve) => setTimeout(resolve, 5000));
         tries++;
         continue;
