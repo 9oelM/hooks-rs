@@ -48,11 +48,12 @@ describe("otxn_field.rs", () => {
       const txResponse = await TestUtils.submitAndWaitWithRetries(
         client,
         {
-          ...rest,
+          ...tx,
           Fee: fee,
         },
         {
           wallet: bob,
+          autofill: true,
         }
       );
       if (!txResponse.result.meta) {
