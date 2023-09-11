@@ -41,10 +41,15 @@ export class Faucet {
 
   static async waitAndGetNewAccount(): Promise<FaucetSuccessResponse> {
     let tries = 0;
+    let resp: Awaited<ReturnType<typeof Faucet.getNewAccount>> | undefined;
     while (tries < 20) {
-      const resp = await Faucet.getNewAccount();
-      if ("error" in resp) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      try {
+        resp = await Faucet.getNewAccount();
+        // ignore errors
+      } catch (e) {}
+
+      if ((resp && "error" in resp) || !resp) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
         tries++;
         continue;
       }
@@ -143,5 +148,21 @@ export class TestUtils {
     );
 
     return submitResponse;
+  }
+
+  static deserializeHexStringAsBigInt(hexString: string): bigint {
+    const SIGN_BIT_MASK = BigInt(`0x8000000000000000`);
+
+    const maybeSignedNumber = BigInt(
+      `${hexString.startsWith(`0x`) ? hexString : `0x${hexString}`}`
+    );
+
+    const isNegative = (maybeSignedNumber & SIGN_BIT_MASK) !== 0n;
+
+    if (isNegative) {
+      return -(maybeSignedNumber ^ SIGN_BIT_MASK);
+    } else {
+      return maybeSignedNumber;
+    }
   }
 }

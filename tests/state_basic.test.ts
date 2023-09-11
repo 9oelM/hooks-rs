@@ -8,19 +8,24 @@ import {
 } from "@transia/xrpl";
 import { Faucet, TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
+import { StateUtility, iHook, padHexString } from "@transia/hooks-toolkit";
 
-const HOOK_NAME = "otxn_field";
+const HOOK_NAME = "state_basic";
 
-describe("otxn_field.rs", () => {
+describe("state_basic.rs", () => {
   let client: Client;
   let alice: Wallet;
   let bob: Wallet;
+  let hook: iHook;
 
   beforeAll(async () => {
-    const hook = await TestUtils.buildHook(HOOK_NAME);
+    hook = await TestUtils.buildHook(HOOK_NAME);
     client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
+  }, 3 * 60_000);
+
+  beforeEach(async () => {
     let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
@@ -35,7 +40,7 @@ describe("otxn_field.rs", () => {
   }, 10_000);
 
   it(
-    "accepts with the account of the originating transaction",
+    "should set count as 2 in the hook's state for the two state keys from hook account and oxtn account",
     async () => {
       const tx: Invoke & Transaction = {
         TransactionType: "Invoke",
@@ -72,16 +77,33 @@ describe("otxn_field.rs", () => {
         throw new Error(`Hook execution happened more than once`);
       }
 
+      for (const address of [alice.classicAddress, bob.classicAddress]) {
+        // Hook always returns uppercase hex string
+        const addressAsStateKey = padHexString(
+          decodeAccountID(address).toString("hex").toUpperCase()
+        );
+        // Hook always returns uppercase hex string
+        const actualState = await StateUtility.getHookState(
+          client,
+          alice.classicAddress,
+          addressAsStateKey,
+          `${HOOK_NAME}namespace`
+        );
+
+        expect(
+          TestUtils.deserializeHexStringAsBigInt(actualState.HookStateData)
+        ).toBe(2n);
+        expect(actualState.HookStateKey).toBe(addressAsStateKey);
+      }
+
       // safe type: we checked everything
       const [hookExecution] = meta.HookExecutions as [HookExecution];
 
-      const { HookReturnString, HookReturnCode } = hookExecution.HookExecution;
+      const { HookReturnCode, HookReturnString } = hookExecution.HookExecution;
 
-      // HookReturnString should contain 20-bytes long representation of account address in uppercase hex string.
-      expect(HookReturnString).toMatch(
-        decodeAccountID(bob.address).toString("hex").toUpperCase()
-      );
       expect(Number(HookReturnCode)).toBe(0);
+      // Hook state data is also returned as a parameter to 'accept' function
+      expect(TestUtils.deserializeHexStringAsBigInt(HookReturnString)).toBe(2n);
     },
     3 * 60_000
   );
