@@ -41,10 +41,15 @@ export class Faucet {
 
   static async waitAndGetNewAccount(): Promise<FaucetSuccessResponse> {
     let tries = 0;
+    let resp: Awaited<ReturnType<typeof Faucet.getNewAccount>> | undefined;
     while (tries < 20) {
-      const resp = await Faucet.getNewAccount();
-      if ("error" in resp) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      try {
+        resp = await Faucet.getNewAccount();
+      // ignore errors
+      } catch (e) {}
+
+      if (resp && "error" in resp || !resp) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
         tries++;
         continue;
       }

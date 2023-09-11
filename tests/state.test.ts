@@ -86,14 +86,6 @@ describe("state.rs", () => {
       expect(actualState.HookStateData).toBe(expectedHookStateData);
       expect(actualState.HookStateKey).toBe(stateKey);
 
-      if (!(meta.HookExecutions && meta.HookExecutions.length > 0)) {
-        throw new Error(`Hook execution data is empty`);
-      }
-
-      if (meta.HookExecutions.length > 1) {
-        throw new Error(`Hook execution happened more than once`);
-      }
-
       // safe type: we checked everything
       const [hookExecution] = meta.HookExecutions as [HookExecution];
 

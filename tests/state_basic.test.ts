@@ -19,27 +19,20 @@ describe("state_basic.rs", () => {
   let hook: iHook;
 
   beforeAll(async () => {
-    console.log(1);
     hook = await TestUtils.buildHook(HOOK_NAME);
     client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    console.log(2);
   });
 
   beforeEach(async () => {
-    console.log(3);
     let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);
     alice = Wallet.fromSecret(secret0);
     bob = Wallet.fromSecret(secret1);
-    console.log(alice.classicAddress);
-    console.log(4);
-    const tx = await TestUtils.setHook(client, alice.seed!, hook);
-    console.log(5);
-    console.log(tx.result.hash);
+    await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
   afterAll(async () => {
@@ -74,7 +67,6 @@ describe("state_basic.rs", () => {
         throw new Error("Meta is string, not object");
       }
 
-      console.log(txResponse.result.hash);
       const { meta } = txResponse.result;
       if (!(meta.HookExecutions && meta.HookExecutions.length > 0)) {
         throw new Error(`Hook execution data is empty`);
@@ -101,14 +93,6 @@ describe("state_basic.rs", () => {
           TestUtils.deserializeHexStringAsBigInt(actualState.HookStateData)
         ).toBe(2n);
         expect(actualState.HookStateKey).toBe(addressAsStateKey);
-      }
-
-      if (!(meta.HookExecutions && meta.HookExecutions.length > 0)) {
-        throw new Error(`Hook execution data is empty`);
-      }
-
-      if (meta.HookExecutions.length > 1) {
-        throw new Error(`Hook execution happened more than once`);
       }
 
       // safe type: we checked everything
