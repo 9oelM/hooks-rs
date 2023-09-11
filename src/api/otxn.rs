@@ -1,3 +1,5 @@
+use core::mem::MaybeUninit;
+
 use crate::c;
 
 use super::*;
@@ -8,10 +10,31 @@ pub fn otxn_burden() -> i64 {
     unsafe { c::otxn_burden() }
 }
 
+// TODO: relate FieldId and BUFFER_LEN so user doesn't need to find the right BUFFER_LEN
+// when using FieldId
 /// Serialize and output a field from the originating transaction
 #[inline(always)]
-pub fn otxn_field(accid: &mut [u8], field_id: FieldId) -> Result<u64> {
-    buf_write_1arg(accid, field_id as _, c::otxn_field)
+pub fn otxn_field<const BUFFER_LEN: usize>(field_id: FieldId) -> Result<[u8; BUFFER_LEN]> {
+    let mut uninitialized_buffer: [MaybeUninit<u8>; BUFFER_LEN] = MaybeUninit::uninit_array();
+    let buffer: [u8; BUFFER_LEN] = unsafe {
+        let result: Result<u64> = c::otxn_field(
+            uninitialized_buffer.as_mut_ptr() as u32,
+            BUFFER_LEN as u32,
+            field_id as u32,
+        )
+        .into();
+
+        match result {
+            Ok(_) => {}
+            Err(err) => {
+                return Err(err);
+            }
+        }
+
+        MaybeUninit::array_assume_init(uninitialized_buffer)
+    };
+
+    Ok(buffer)
 }
 
 /// Output a field from the originating transaction as a human readable string
