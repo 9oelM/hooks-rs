@@ -14,6 +14,10 @@ XRPL hooks in Rust.
 
 See [examples](./examples/).
 
+## C bindings
+
+The latest header files can be found at https://github.com/XRPLF/hook-macros
+
 ## Credits
 
 - This is a fork of [otov4its/xrpl-hooks](https://github.com/otov4its/xrpl-hooks) which has been unmaintained for a long time.
