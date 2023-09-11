@@ -144,4 +144,20 @@ export class TestUtils {
 
     return submitResponse;
   }
+
+  static deserializeHexStringAsBigInt(hexString: string): bigint {
+    const SIGN_BIT_MASK = BigInt(`0x8000000000000000`);
+
+    const maybeSignedNumber = BigInt(
+      `${hexString.startsWith(`0x`) ? hexString : `0x${hexString}`}`
+    );
+
+    const isNegative = (maybeSignedNumber & SIGN_BIT_MASK) !== 0n;
+
+    if (isNegative) {
+      return -(maybeSignedNumber ^ SIGN_BIT_MASK);
+    } else {
+      return maybeSignedNumber;
+    }
+  }
 }
