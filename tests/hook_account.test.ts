@@ -27,7 +27,6 @@ describe("hook_account.rs", () => {
     ]);
     alice = Wallet.fromSecret(secret0);
     bob = Wallet.fromSecret(secret1);
-    await new Promise((resolve) => setTimeout(resolve, 10_000));
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
