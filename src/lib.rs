@@ -21,8 +21,7 @@
     unreachable_pub
 )]
 #![doc(test(attr(deny(warnings))))]
-
-mod utils;
+#![feature(maybe_uninit_uninit_array, maybe_uninit_array_assume_init)]
 
 #[allow(missing_docs)]
 pub mod c {

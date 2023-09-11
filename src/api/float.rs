@@ -11,7 +11,7 @@ pub struct XFL(pub(super) i64 /* enclosing number */);
 pub fn float_set(exponent: i32, mantissa: i64) -> Result<XFL> {
     let res = unsafe { c::float_set(exponent, mantissa) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Multiply two XFL numbers together
@@ -19,7 +19,7 @@ pub fn float_set(exponent: i32, mantissa: i64) -> Result<XFL> {
 pub fn float_multiply(float1: XFL, float2: XFL) -> Result<XFL> {
     let res = unsafe { c::float_multiply(float1.0, float2.0) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Multiply an XFL floating point by a non-XFL numerator and denominator
@@ -32,7 +32,7 @@ pub fn float_mulratio(
 ) -> Result<XFL> {
     let res = unsafe { c::float_mulratio(float1.0, round_up as _, numerator, denominator) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Negate an XFL floating point number
@@ -40,7 +40,7 @@ pub fn float_mulratio(
 pub fn float_negate(float: XFL) -> Result<XFL> {
     let res = unsafe { c::float_negate(float.0) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// XFL compare mode
@@ -81,7 +81,7 @@ pub fn float_compare(float1: XFL, float2: XFL, mode: XFLCompareMode) -> Result<b
 pub fn float_sum(float1: XFL, float2: XFL) -> Result<XFL> {
     let res = unsafe { c::float_sum(float1.0, float2.0) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Output an XFL as a serialized object
@@ -106,7 +106,7 @@ pub fn float_sto(
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 /// Read a serialized amount into an XFL
@@ -114,7 +114,7 @@ pub fn float_sto(
 pub fn float_sto_set(sto_xfl: &[u8]) -> Result<XFL> {
     let res = unsafe { c::float_sto_set(sto_xfl.as_ptr() as _, sto_xfl.len() as _) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Divide one by an XFL floating point number
@@ -122,7 +122,7 @@ pub fn float_sto_set(sto_xfl: &[u8]) -> Result<XFL> {
 pub fn float_invert(float: XFL) -> Result<XFL> {
     let res = unsafe { c::float_invert(float.0) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Divide an XFL by another XFL floating point number
@@ -130,7 +130,7 @@ pub fn float_invert(float: XFL) -> Result<XFL> {
 pub fn float_divide(float1: XFL, float2: XFL) -> Result<XFL> {
     let res = unsafe { c::float_divide(float1.0, float2.0) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Return the number 1 represented in an XFL enclosing number
@@ -166,7 +166,7 @@ pub fn float_sign(float: XFL) -> Result<bool> {
 pub fn float_exponent_set(float: XFL, exponent: i32) -> Result<XFL> {
     let res = unsafe { c::float_exponent_set(float.0, exponent) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Set the mantissa of an XFL enclosing number
@@ -174,7 +174,7 @@ pub fn float_exponent_set(float: XFL, exponent: i32) -> Result<XFL> {
 pub fn float_mantissa_set(float: XFL, mantissa: i64) -> Result<XFL> {
     let res = unsafe { c::float_mantissa_set(float.0, mantissa) };
 
-    result_xfl(res)
+    res.into()
 }
 
 /// Set the sign of an XFL enclosing number
@@ -188,5 +188,5 @@ pub fn float_sign_set(float: XFL, sign: bool) -> XFL {
 pub fn float_int(float: XFL, decimal_places: u32, absolute: bool) -> Result<u64> {
     let res = unsafe { c::float_int(float.0, decimal_places, absolute as _) };
 
-    result_u64(res)
+    res.into()
 }

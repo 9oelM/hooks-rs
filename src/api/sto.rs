@@ -48,7 +48,7 @@ pub fn sto_emplace(
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 /// Remove a field from an STObject
@@ -64,7 +64,7 @@ pub fn sto_erase(sto_out: &mut [u8], sto_src: &[u8], field_id: FieldId) -> Resul
         )
     };
 
-    result_u64(res)
+    res.into()
 }
 
 /// Validate an STObject

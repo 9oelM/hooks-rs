@@ -1,7 +1,6 @@
 use core::ops::Range;
 
 use crate::api::*;
-use crate::utils::uninit_buffer;
 
 /// Tests two buffers for equality
 ///
@@ -47,48 +46,6 @@ pub fn buffer_zeroize<const GUARD_ID: u32>(buf: &mut [u8]) {
     } {
         buf[0] = 0;
         i += 1;
-    }
-}
-
-/// Checks whether the transaction is outgoing
-///
-/// Pay attention to the GUARD_ID parameter.
-/// This should be unique on every call, through the entire hook code.
-/// Otherwise you will encounter guard violation during the execution of your hook.
-#[inline(always)]
-pub fn is_txn_outgoing<const GUARD_ID: u32>(
-    hook_acc_id: &mut AccountId,
-    otnx_acc_id: &mut AccountId,
-) -> Result<bool> {
-    match hook_account(hook_acc_id) {
-        Err(e) => return Err(e),
-        Ok(_) => {}
-    }
-
-    match otxn_field(otnx_acc_id, FieldId::Account) {
-        Err(e) => return Err(e),
-        Ok(_) => {}
-    }
-
-    Ok(is_buffer_equal::<GUARD_ID>(
-        &hook_acc_id[..],
-        &otnx_acc_id[..],
-    ))
-}
-
-/// Checks whether the transaction is ingoing
-///
-/// Pay attention to the GUARD_ID parameter.
-/// This should be unique on every call, through the entire hook code.
-/// Otherwise you will encounter guard violation during the execution of your hook.
-#[inline(always)]
-pub fn is_txn_ingoing<const GUARD_ID: u32>(
-    hook_acc_id: &mut AccountId,
-    otnx_acc_id: &mut AccountId,
-) -> Result<bool> {
-    match is_txn_outgoing::<GUARD_ID>(hook_acc_id, otnx_acc_id) {
-        Err(e) => Err(e),
-        Ok(res) => Ok(!res),
     }
 }
 
@@ -142,11 +99,10 @@ pub fn prepare_payment_simple(
         end: 237,
     };
 
-    let mut acc: AccountId = uninit_buffer();
-    match hook_account(&mut acc) {
+    let acc = match hook_account() {
         Err(e) => return Err(e),
-        Ok(_) => {}
-    }
+        Ok(acc) => acc,
+    };
 
     let cls = ledger_seq() as u32;
 
@@ -285,7 +241,8 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn enc_account() {
-        let mut encoded: [u8; c::ENCODE_ACCOUNT_SIZE as usize] = uninit_buffer();
+        let mut encoded: [u8; c::ENCODE_ACCOUNT_SIZE as usize] =
+            [0; c::ENCODE_ACCOUNT_SIZE as usize];
 
         encode_account(&mut encoded, &ACCOUNT_ID, AccountType::Account);
 
