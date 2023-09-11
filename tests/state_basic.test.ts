@@ -23,7 +23,7 @@ describe("state_basic.rs", () => {
     client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-  });
+  }, 3 * 60_000);
 
   beforeEach(async () => {
     let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
