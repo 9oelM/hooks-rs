@@ -14,18 +14,14 @@ use crate::api::*;
 /// ```
 /// 
 /// ```
-pub struct ComparableArray<T, const N: usize>
+pub struct ComparableArray<'a, T, const N: usize>
 where
     T: PartialEq,
 {
-    data: [T; N],
+    data: &'a [T; N],
 }
 
 /// Tests two buffers for equality
-///
-/// Pay attention to the GUARD_ID parameter.
-/// This should be unique on every call, through the entire hook code.
-/// Otherwise you will encounter guard violation during the execution of your hook.
 #[inline(always)]
 pub fn is_buffer_equal<T: PartialEq>(buf_1: &[T], buf_2: &[T]) -> bool {
     let buf1_len = buf_1.len();
@@ -50,10 +46,6 @@ pub fn is_buffer_equal<T: PartialEq>(buf_1: &[T], buf_2: &[T]) -> bool {
 }
 
 /// Zeroize a buffer
-///
-/// Pay attention to the GUARD_ID parameter.
-/// This should be unique on every call, through the entire hook code.
-/// Otherwise you will encounter guard violation during the execution of your hook.
 #[inline(always)]
 pub fn buffer_zeroize<const GUARD_ID: u32>(buf: &mut [u8]) {
     let buf_len = buf.len();
@@ -249,26 +241,35 @@ fn encode_account(buf_out: &mut [u8], account_id: &AccountId, account_type: Acco
     buf_out[2..22].clone_from_slice(&account_id[..]);
 }
 
-impl<T: PartialEq, const N: usize> ComparableArray<T, N> {
+impl<'a, T: PartialEq, const N: usize> ComparableArray<'a, T, N> {
     /// Create a new ComparableArray
     #[inline(always)]
-    pub const fn new(data: [T; N]) -> Self {
+    pub const fn new(data: &'a [T; N]) -> Self {
         Self { data }
     }
 }
 
-impl<T: PartialEq, const N: usize> AsRef<[T]> for ComparableArray<T, N> {
+impl<T: PartialEq, const N: usize> AsRef<[T]> for ComparableArray<'_, T, N> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, const N: usize> PartialEq for ComparableArray<T, N>
+impl<T, const N: usize> PartialEq for ComparableArray<'_, T, N>
 where
     T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         is_buffer_equal::<T>(self.as_ref(), other.as_ref())
+    }
+}
+
+impl<'a, T, const N: usize> From<&'a [T; N]> for ComparableArray<'a, T, N>
+where
+    T: PartialEq,
+{
+    fn from(data: &'a [T; N]) -> Self {
+        Self::new(&data)
     }
 }
 
@@ -310,23 +311,23 @@ mod tests {
         )
     }
 
-    // #[wasm_bindgen_test]
-    // fn comparable_array_equal() {
-    //     const A: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
-    //     const B: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
+    #[wasm_bindgen_test]
+    fn comparable_array_equal() {
+        const A: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
+        const B: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
 
-    //     // assert_eq! requires ComparableArray to implement Debug trait,
-    //     // but this is much simpler
-    //     assert!(A == B);
-    // }
-    
-    // #[wasm_bindgen_test]
-    // fn comparable_array_not_equal() {
-    //     const A: ComparableArray<u8, 14> = ComparableArray::new(*b"diff diff diff");
-    //     const B: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
+        // assert_eq! requires ComparableArray to implement Debug trait,
+        // but this is much simpler
+        assert!(A == B);
+    }
 
-    //     // assert_eq! requires ComparableArray to implement Debug trait,
-    //     // but this is much simpler
-    //     assert!(A == B);
-    // }
+    #[wasm_bindgen_test]
+    fn comparable_array_not_equal() {
+        const A: ComparableArray<u8, 14> = ComparableArray::new(b"diff diff diff");
+        const B: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
+
+        // assert_eq! requires ComparableArray to implement Debug trait,
+        // but this is much simpler
+        assert!(A == B);
+    }
 }
