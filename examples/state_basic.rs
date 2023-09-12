@@ -12,7 +12,7 @@ pub extern "C" fn cbak(_: u32) -> i64 {
 
 #[no_mangle]
 pub extern "C" fn hook(_: u32) -> i64 {
-    _g(1, 1);
+    max_iter(1);
 
     let otxn_account = match otxn_field::<ACC_ID_LEN>(FieldId::Account) {
         Ok(data) => data,

@@ -10,7 +10,7 @@ pub extern "C" fn cbak(_: u32) -> i64 {
 
 #[no_mangle]
 pub extern "C" fn hook(_: u32) -> i64 {
-    _g(1, 1);
+    max_iter(1);
 
     let hook_account = match hook_account() {
         Ok(acc) => acc,

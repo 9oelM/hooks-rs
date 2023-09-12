@@ -14,7 +14,7 @@ pub extern "C" fn cbak(_: u32) -> i64 {
 pub extern "C" fn hook(_: u32) -> i64 {
     // Every hook needs to import guard function
     // and use it at least once
-    _g(1, 1);
+    max_iter(1);
     let _ = trace(b"accept.rs: Called.", b"", DataRepr::AsUTF8);
 
     // Accept all

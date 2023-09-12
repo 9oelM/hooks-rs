@@ -2,11 +2,10 @@
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
 import { Faucet, TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
-import { StateUtility, padHexString } from "@transia/hooks-toolkit";
 
-const HOOK_NAME = "state";
+const HOOK_NAME = "array_equality";
 
-describe("state.rs", () => {
+describe("array_equality.rs", () => {
   let client: Client;
   let alice: Wallet;
   let bob: Wallet;
@@ -30,7 +29,7 @@ describe("state.rs", () => {
   }, 10_000);
 
   it(
-    "sets a state value with a specific key",
+    `should correctly compare arrays and end with accept("", 0)`,
     async () => {
       const tx: Invoke & Transaction = {
         TransactionType: "Invoke",
@@ -67,33 +66,14 @@ describe("state.rs", () => {
         throw new Error(`Hook execution happened more than once`);
       }
 
-      // Hook always returns uppercase hex string
-      const stateKey = padHexString(
-        Buffer.from(`hello world key`).toString("hex").toUpperCase()
-      );
-      // Hook always returns uppercase hex string
-      const expectedHookStateData = Buffer.from(`hello world val`)
-        .toString("hex")
-        .toUpperCase();
-
-      const actualState = await StateUtility.getHookState(
-        client,
-        alice.classicAddress,
-        stateKey,
-        `${HOOK_NAME}namespace`
-      );
-
-      expect(actualState.HookStateData).toBe(expectedHookStateData);
-      expect(actualState.HookStateKey).toBe(stateKey);
-
       // safe type: we checked everything
       const [hookExecution] = meta.HookExecutions as [HookExecution];
 
-      const { HookReturnCode, HookReturnString } = hookExecution.HookExecution;
+      const { HookReturnCode } = hookExecution.HookExecution;
 
-      expect(Number(HookReturnCode)).toBe(0);
-      // Hook state data is also returned as a parameter to 'accept' function
-      expect(HookReturnString).toBe(expectedHookStateData);
+      expect(
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString())
+      ).toBe(0n);
     },
     3 * 60_000
   );
