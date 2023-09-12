@@ -29,26 +29,28 @@ pub use util::*;
 /// Flags canonical
 pub const TF_CANONICAL: u32 = c::tfCANONICAL;
 
-/// Account id buffer lenght
+/// Account id byte length
 pub const ACC_ID_LEN: usize = 20;
-/// Currency code buffer lenght
+/// Currency code byte length
 pub const CURRENCY_CODE_SIZE: usize = 20;
-/// Ledger hash buffer lenght
+/// Ledger hash byte length
 pub const LEDGER_HASH_LEN: usize = 32;
-/// Keylet buffer lenght
+/// Keylet byte length
 pub const KEYLET_LEN: usize = 34;
-/// State key buffer lenght
+/// State key byte length
 pub const STATE_KEY_LEN: usize = 32;
-/// Nonce buffer lenght
+/// Nonce byte length
 pub const NONCE_LEN: usize = 32;
-/// Hash buffer lenght
+/// Hash byte length
 pub const HASH_LEN: usize = 32;
-/// Amount buffer lenght
+/// Amount byte length
 pub const AMOUNT_LEN: usize = 48;
-/// Payment simple transaction buffer lenght
+/// Payment simple transaction byte length
 pub const PREPARE_PAYMENT_SIMPLE_SIZE: usize = c::PREPARE_PAYMENT_SIMPLE_SIZE as _;
-/// Emit details buffer lenght
+/// Emit details byte length
 pub const EMIT_DETAILS_SIZE: usize = 105;
+/// XFL byte length
+pub const XFL_LEN: usize = 8;
 
 /// Buffer of the specified size
 pub type Buffer<const T: usize> = [u8; T];
