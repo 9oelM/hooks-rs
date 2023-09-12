@@ -49,28 +49,28 @@ Emitted transaction
 
 Float
 
-- [ ] `float_set`
-- [ ] `float_multiply`
-- [ ] `float_mulratio`
-- [ ] `float_negate`
-- [ ] `float_compare`
-- [ ] `float_sum`
-- [ ] `float_sto`
+- [x] `float_set`
+- [x] `float_multiply`
+- [x] `float_mulratio`
+- [x] `float_negate`
+- [x] `float_compare`
+- [x] `float_sum`
+- [x] `float_sto`
 - [ ] `float_sto_set`
-- [ ] `float_invert`
-- [ ] `float_divide`
-- [ ] `float_one`
-- [ ] `float_exponent`
-- [ ] `float_mantissa`
-- [ ] `float_sign`
-- [ ] `float_int`
+- [x] `float_invert`
+- [x] `float_divide`
+- [x] `float_one`
+- [x] `float_exponent`
+- [x] `float_mantissa`
+- [x] `float_sign`
+- [x] `float_int`
 - [ ] `float_root`
 - [ ] `float_log`
 
 Ledger
 
 - [ ] `fee_base`
-- [ ] `ledger_seq`
+- [x] `ledger_seq`
 - [ ] `ledger_last_hash`
 - [ ] `ledger_last_time`
 - [ ] `ledger_nonce`

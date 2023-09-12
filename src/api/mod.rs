@@ -481,6 +481,16 @@ impl<T> Result<T> {
         }
     }
 
+    /// Similar to `unwrap`, but rollbacks with line number.
+    /// This can be useful for fast debugging.
+    #[inline(always)]
+    pub fn unwrap_line_number(self) -> T {
+        match self {
+            Err(_) => rollback(b"error", line!().into()),
+            Ok(val) => val,
+        }
+    }
+
     /// Returns `true` if the result is [`Ok`].
     #[must_use]
     #[inline(always)]

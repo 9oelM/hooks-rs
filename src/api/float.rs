@@ -43,16 +43,16 @@ impl XFL {
         Self::from_verified_i64(unsafe { c::float_set(exponent, mantissa) })
     }
 
-    /// Create a new XFL number from a verified i64, that is,
-    /// a number that is known to be a valid XFL number.
-    ///
-    /// Because it is too dangerous to be exposed to the user,
-    /// this function is only visible to pub(crate) level.
-    ///
-    /// For that reason, From<i64> for Result<XFL> is not implemented.
-    ///
-    /// Only use this function to create an XFL number from
-    /// C function calls.
+    // Create a new XFL number from a verified i64, that is,
+    // a number that is known to be a valid XFL number.
+    //
+    // Because it is too dangerous to be exposed to the user,
+    // this function is only visible to `pub(crate)` level.
+    //
+    // For that reason, `From<i64> for Result<XFL>` is not implemented.
+    //
+    // Only use this function to create an XFL number from
+    // C function calls.
     #[inline(always)]
     pub(crate) fn from_verified_i64(source: i64) -> Result<Self> {
         match source {
@@ -72,7 +72,7 @@ impl XFL {
     /// Return the number 1 represented in an XFL enclosing number
     #[inline(always)]
     pub fn one() -> Self {
-        // Instead of using float_one, we use the computed enclosing
+        // Instead of using c::float_one, we use the computed enclosing
         // value directly.
         XFL(6089866696204910592)
     }
@@ -186,7 +186,7 @@ impl PartialOrd for XFL {
             match c::float_compare(self.0, other.0, c::COMPARE_EQUAL) {
                 1 => Some(Ordering::Equal),
                 0 => {
-                    // This is because float_compare cannot return an ordering at once
+                    // This is because float_compare cannot return an ordering at one go.
                     match c::float_compare(self.0, other.0, c::COMPARE_LESS) {
                         1 => Some(Ordering::Less),
                         0 => Some(Ordering::Greater),
