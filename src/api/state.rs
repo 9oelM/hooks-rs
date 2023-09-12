@@ -11,34 +11,35 @@ use super::*;
 pub fn state<const STATE_VALUE_LEN: usize>(key: &[u8]) -> Result<[u8; STATE_VALUE_LEN]>
 where
 {
-    let mut uninitialized_buffer: [MaybeUninit<u8>; STATE_VALUE_LEN] = MaybeUninit::uninit_array();
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe {
+            c::state(
+                buffer_mut_ptr as u32,
+                STATE_VALUE_LEN as u32,
+                key.as_ptr() as u32,
+                key.len() as u32,
+            )
+            .into()
+        };
 
-    let initialized_buffer = unsafe {
-        let result: Result<u64> = c::state(
-            uninitialized_buffer.as_mut_ptr() as u32,
-            STATE_VALUE_LEN as u32,
-            key.as_ptr() as u32,
-            key.len() as u32,
-        )
-        .into();
-
-        match result {
-            Ok(_) => {}
-            Err(err) => {
-                return Err(err);
-            }
-        }
-
-        MaybeUninit::array_assume_init(uninitialized_buffer)
+        result
     };
 
-    Ok(initialized_buffer)
+    init_buffer_mut(func)
 }
 
 /// Set the Hook State for a given key and value
 #[inline(always)]
 pub fn state_set(data: &[u8], key: &[u8]) -> Result<u64> {
-    buf_2read(data, key, c::state_set)
+    unsafe {
+        c::state_set(
+            data.as_ptr() as u32,
+            data.len() as u32,
+            key.as_ptr() as u32,
+            key.len() as u32,
+        )
+    }
+    .into()
 }
 
 /// Retrieve the data pointed to, on another account, by a Hook State key and write it to an output buffer
