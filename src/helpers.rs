@@ -3,16 +3,16 @@ use core::ops::Range;
 use crate::api::*;
 
 /// Comparable array of variables.
-/// 
+///
 /// This can be used when manually calling `is_buffer_equal` to compare two arrays
 /// is to be avoided.
-/// 
+///
 /// Using ComparableArray over `is_buffer_equal` is generally preferred, since
 /// it is more readable.
-/// 
+///
 /// # Example
 /// ```
-/// 
+///
 /// ```
 pub struct ComparableArray<'a, T, const N: usize>
 where
@@ -269,7 +269,7 @@ where
     T: PartialEq,
 {
     fn from(data: &'a [T; N]) -> Self {
-        Self::new(&data)
+        Self::new(data)
     }
 }
 

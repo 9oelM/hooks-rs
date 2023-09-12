@@ -72,7 +72,9 @@ describe("array_equality.rs", () => {
 
       const { HookReturnCode } = hookExecution.HookExecution;
 
-      expect(TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString())).toBe(0n);
+      expect(
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString())
+      ).toBe(0n);
     },
     3 * 60_000
   );
