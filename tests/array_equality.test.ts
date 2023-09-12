@@ -21,7 +21,6 @@ describe("array_equality.rs", () => {
     ]);
     alice = Wallet.fromSecret(secret0);
     bob = Wallet.fromSecret(secret1);
-    await new Promise((resolve) => setTimeout(resolve, 10_000));
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -30,7 +29,7 @@ describe("array_equality.rs", () => {
   }, 10_000);
 
   it(
-    "should give equality result for two same arrays",
+    `should correctly compare arrays and end with accept("", 0)`,
     async () => {
       const tx: Invoke & Transaction = {
         TransactionType: "Invoke",

@@ -12,7 +12,15 @@ use crate::api::*;
 ///
 /// # Example
 /// ```
+/// const A: &[u8; 14] = b"same same same";
+/// const B: &[u8; 14] = b"same same same";
 ///
+/// const COMPARABLE_A: ComparableArray<u8, 14> = ComparableArray::new(A);
+/// const COMPARABLE_B: ComparableArray<u8, 14> = ComparableArray::new(B);
+///
+/// if COMPARABLE_A != COMPARABLE_B {
+///     rollback(b"arrays are not the same", -1);
+/// }
 /// ```
 pub struct ComparableArray<'a, T, const N: usize>
 where
@@ -312,26 +320,14 @@ mod tests {
     }
 
     // Due to some bug with wasm-pack or wasm-bindgen-test, this test does not compile.
-    #[ignore]
-    #[wasm_bindgen_test]
-    fn comparable_array_equal() {
-        const A: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
-        const B: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
+    // and wasm-pack test --node does not pick up #[ignore] attribute.
+    // #[wasm_bindgen_test]
+    // fn comparable_array_equal() {
+    //     const A: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
+    //     const B: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
 
-        // assert_eq! requires ComparableArray to implement Debug trait,
-        // but this is much simpler
-        assert!(A == B);
-    }
-
-    // Due to some bug with wasm-pack or wasm-bindgen-test, this test does not compile.
-    #[ignore]
-    #[wasm_bindgen_test]
-    fn comparable_array_not_equal() {
-        const A: ComparableArray<u8, 14> = ComparableArray::new(b"diff diff diff");
-        const B: ComparableArray<u8, 14> = ComparableArray::new(b"same same same");
-
-        // assert_eq! requires ComparableArray to implement Debug trait,
-        // but this is much simpler
-        assert!(A == B);
-    }
+    //     // assert_eq! requires ComparableArray to implement Debug trait,
+    //     // but this is much simpler
+    //     assert!(A == B);
+    // }
 }

@@ -1,8 +1,7 @@
 use crate::c;
 
-use core::sync::atomic::{AtomicUsize, Ordering};
-
-static GUARD_ID: AtomicUsize = AtomicUsize::new(0);
+// Safe to be modified globally because wasm is guaranteed to run in a single thread
+static mut GUARD_ID: u32 = 0;
 
 /// Guard function
 ///
@@ -49,7 +48,8 @@ pub fn _g(id: u32, max_iter: u32) {
 #[inline(always)]
 pub fn max_iter(max_iter: u32) {
     unsafe {
-        c::_g(GUARD_ID.fetch_add(1, Ordering::SeqCst) as u32, max_iter);
+        GUARD_ID += 1;
+        _g(GUARD_ID, max_iter);
     }
 }
 
