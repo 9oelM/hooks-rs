@@ -15,5 +15,5 @@ pub extern "C" fn hook(_: u32) -> i64 {
     const STATE_KEY: &[u8; 14] = b"same same same";
     const STATE_VALUE: &[u8; 14] = b"same same same";
 
-    0
+    if 
 }

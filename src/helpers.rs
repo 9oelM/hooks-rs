@@ -2,7 +2,7 @@ use core::ops::Range;
 
 use crate::api::*;
 
-struct GenericByteArray<T, const N: usize>
+struct IntArray<T, const N: usize>
 where
     T: PartialEq,
 {
@@ -236,13 +236,13 @@ fn encode_account(buf_out: &mut [u8], account_id: &AccountId, account_type: Acco
     buf_out[2..22].clone_from_slice(&account_id[..]);
 }
 
-impl<T: PartialEq, const N: usize> AsRef<[T]> for GenericByteArray<T, N> {
+impl<T: PartialEq, const N: usize> AsRef<[T]> for IntArray<T, N> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, const N: usize> PartialEq for GenericByteArray<T, N>
+impl<T, const N: usize> PartialEq for IntArray<T, N>
 where
     T: PartialEq,
 {
