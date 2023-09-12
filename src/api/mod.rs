@@ -3,6 +3,8 @@ use crate::c;
 mod control;
 mod etxn;
 mod float;
+mod hook;
+mod internal;
 mod ledger;
 mod otxn;
 mod slot;
@@ -14,6 +16,8 @@ mod util;
 pub use control::*;
 pub use etxn::*;
 pub use float::*;
+pub use hook::*;
+pub(crate) use internal::*;
 pub use ledger::*;
 pub use otxn::*;
 pub use slot::*;
@@ -590,13 +594,11 @@ impl Error {
 type Api1ArgsU32 = unsafe extern "C" fn(u32) -> i64;
 type Api2ArgsU32 = unsafe extern "C" fn(u32, u32) -> i64;
 type Api3ArgsU32 = unsafe extern "C" fn(u32, u32, u32) -> i64;
-type Api3ArgsU32AndI32 = unsafe extern "C" fn(u32, u32, i32) -> i64;
 type Api4ArgsU32 = unsafe extern "C" fn(u32, u32, u32, u32) -> i64;
 type Api6ArgsU32 = unsafe extern "C" fn(u32, u32, u32, u32, u32, u32) -> i64;
 
 type BufWriter = Api2ArgsU32;
 type BufReader = Api2ArgsU32;
-type Buf2Reader = Api4ArgsU32;
 type BufWriterReader = Api4ArgsU32;
 type Buf3Reader = Api6ArgsU32;
 type BufWriter1Arg = Api3ArgsU32;
@@ -629,31 +631,9 @@ fn buf_write_1arg(buf_write: &mut [u8], arg: u32, fun: BufWriter1Arg) -> Result<
     res.into()
 }
 
-// Quick fix for functions that have 1 argument of type i32
-#[inline(always)]
-fn buf_write_1arg_i32(buf_write: &mut [u8], arg: i32, fun: Api3ArgsU32AndI32) -> Result<u64> {
-    let res = unsafe { fun(buf_write.as_mut_ptr() as u32, buf_write.len() as u32, arg) };
-
-    res.into()
-}
-
 #[inline(always)]
 fn buf_read(buf: &[u8], fun: BufReader) -> Result<u64> {
     let res = unsafe { fun(buf.as_ptr() as u32, buf.len() as u32) };
-
-    res.into()
-}
-
-#[inline(always)]
-fn buf_2read(buf_1: &[u8], buf_2: &[u8], fun: Buf2Reader) -> Result<u64> {
-    let res = unsafe {
-        fun(
-            buf_1.as_ptr() as u32,
-            buf_1.len() as u32,
-            buf_2.as_ptr() as u32,
-            buf_2.len() as u32,
-        )
-    };
 
     res.into()
 }
