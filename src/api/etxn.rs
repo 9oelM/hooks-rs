@@ -24,10 +24,9 @@ pub fn etxn_details() -> Result<[u8; EMIT_DETAILS_SIZE]> {
 /// Estimate the required fee for a txn to be emitted successfully
 #[inline(always)]
 pub fn etxn_fee_base(tx_blob: &mut [u8]) -> Result<XFL> {
-    let result: Result<XFL> =
-        unsafe { c::etxn_fee_base(tx_blob.as_mut_ptr() as u32, tx_blob.len() as u32).into() };
-
-    result
+    XFL::from_verified_i64(unsafe {
+        c::etxn_fee_base(tx_blob.as_mut_ptr() as u32, tx_blob.len() as u32)
+    })
 }
 
 /// Generate a 32 byte nonce for use in an emitted transaction

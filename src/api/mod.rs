@@ -807,16 +807,6 @@ impl From<i64> for Result<u64> {
     }
 }
 
-impl From<i64> for Result<XFL> {
-    #[inline(always)]
-    fn from(res: i64) -> Self {
-        match res {
-            res if res >= 0 => Ok(XFL(res)),
-            _ => Err(Error::from_code(res as _)),
-        }
-    }
-}
-
 impl From<Error> for i64 {
     #[inline(always)]
     fn from(err: Error) -> Self {
