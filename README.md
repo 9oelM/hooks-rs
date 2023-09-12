@@ -14,6 +14,115 @@ XRPL hooks in Rust.
 
 See [examples](./examples/).
 
+## Supported functions
+
+Control
+
+- [x] `accept`
+- [x] `rollback`
+
+Utilities
+
+- [ ] `util_raddr`
+- [ ] `util_accid`
+- [ ] `util_verify`
+- [ ] `util_sha512h`
+- [ ] `util_keylet`
+
+Serialization
+
+- [ ] `sto_subfield`
+- [ ] `sto_subarray`
+- [ ] `sto_emplace`
+- [ ] `sto_erase`
+- [ ] `sto_validate`
+
+Emitted transaction
+
+- [ ] `etxn_burden`
+- [x] `etxn_details`
+- [x] `etxn_fee_base`
+- [x] `etxn_nonce`
+- [x] `etxn_reserve`
+- [ ] `etxn_generation`
+- [x] `emit`
+
+Float
+
+- [ ] `float_set`
+- [ ] `float_multiply`
+- [ ] `float_mulratio`
+- [ ] `float_negate`
+- [ ] `float_compare`
+- [ ] `float_sum`
+- [ ] `float_sto`
+- [ ] `float_sto_set`
+- [ ] `float_invert`
+- [ ] `float_divide`
+- [ ] `float_one`
+- [ ] `float_exponent`
+- [ ] `float_mantissa`
+- [ ] `float_sign`
+- [ ] `float_int`
+- [ ] `float_root`
+- [ ] `float_log`
+
+Ledger
+
+- [ ] `fee_base`
+- [ ] `ledger_seq`
+- [ ] `ledger_last_hash`
+- [ ] `ledger_last_time`
+- [ ] `ledger_nonce`
+- [ ] `ledger_keylet`
+
+Hook context
+
+- [x] `hook_account`
+- [ ] `hook_hash`
+- [x] `hook_param`
+- [ ] `hook_param_set`
+- [ ] `hook_skip`
+- [ ] `hook_pos`
+- [ ] `hook_again`
+
+Slot
+
+- [ ] `slot`
+- [ ] `slot_clear`
+- [ ] `slot_count`
+- [ ] `slot_set`
+- [ ] `slot_size`
+- [ ] `slot_subarray`
+- [ ] `slot_subfield`
+- [ ] `slot_type`
+- [ ] `xpop_slot`
+- [ ] `slot_float`
+
+State
+
+- [x] `state`
+- [x] `state_set`
+- [ ] `state_foreign`
+- [ ] `state_foreign_set`
+
+Trace
+
+- [x] `trace`
+- [x] `trace_num`
+- [x] `trace_float`
+
+Originating transaction
+
+- [ ] `otxn_burden`
+- [x] `otxn_field`
+- [ ] `otxn_generation`
+- [ ] `otxn_id`
+- [ ] `otxn_type`
+- [ ] `otxn_slot`
+- [x] `otxn_param`
+- [ ] `meta_slot`
+
 ## C bindings
 
 The latest header files can be found at https://github.com/XRPLF/hook-macros
