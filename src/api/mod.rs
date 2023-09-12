@@ -4,6 +4,7 @@ mod control;
 mod etxn;
 mod float;
 mod hook;
+mod internal;
 mod ledger;
 mod otxn;
 mod slot;
@@ -16,6 +17,7 @@ pub use control::*;
 pub use etxn::*;
 pub use float::*;
 pub use hook::*;
+pub(crate) use internal::*;
 pub use ledger::*;
 pub use otxn::*;
 pub use slot::*;
@@ -597,7 +599,6 @@ type Api6ArgsU32 = unsafe extern "C" fn(u32, u32, u32, u32, u32, u32) -> i64;
 
 type BufWriter = Api2ArgsU32;
 type BufReader = Api2ArgsU32;
-type Buf2Reader = Api4ArgsU32;
 type BufWriterReader = Api4ArgsU32;
 type Buf3Reader = Api6ArgsU32;
 type BufWriter1Arg = Api3ArgsU32;
@@ -633,20 +634,6 @@ fn buf_write_1arg(buf_write: &mut [u8], arg: u32, fun: BufWriter1Arg) -> Result<
 #[inline(always)]
 fn buf_read(buf: &[u8], fun: BufReader) -> Result<u64> {
     let res = unsafe { fun(buf.as_ptr() as u32, buf.len() as u32) };
-
-    res.into()
-}
-
-#[inline(always)]
-fn buf_2read(buf_1: &[u8], buf_2: &[u8], fun: Buf2Reader) -> Result<u64> {
-    let res = unsafe {
-        fun(
-            buf_1.as_ptr() as u32,
-            buf_1.len() as u32,
-            buf_2.as_ptr() as u32,
-            buf_2.len() as u32,
-        )
-    };
 
     res.into()
 }

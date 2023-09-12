@@ -15,26 +15,15 @@ pub fn otxn_burden() -> i64 {
 /// Serialize and output a field from the originating transaction
 #[inline(always)]
 pub fn otxn_field<const BUFFER_LEN: usize>(field_id: FieldId) -> Result<[u8; BUFFER_LEN]> {
-    let mut uninitialized_buffer: [MaybeUninit<u8>; BUFFER_LEN] = MaybeUninit::uninit_array();
-    let buffer: [u8; BUFFER_LEN] = unsafe {
-        let result: Result<u64> = c::otxn_field(
-            uninitialized_buffer.as_mut_ptr() as u32,
-            BUFFER_LEN as u32,
-            field_id as u32,
-        )
-        .into();
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe {
+            c::otxn_field(buffer_mut_ptr as u32, BUFFER_LEN as u32, field_id as u32).into()
+        };
 
-        match result {
-            Ok(_) => {}
-            Err(err) => {
-                return Err(err);
-            }
-        }
-
-        MaybeUninit::array_assume_init(uninitialized_buffer)
+        result
     };
 
-    Ok(buffer)
+    init_buffer_mut(func)
 }
 
 /// Output a field from the originating transaction as a human readable string
@@ -70,25 +59,19 @@ pub fn otxn_slot(slot_no: u32) -> Result<u64> {
 /// Retrieve the parameter value for a named Invoke transaction parameter
 #[inline(always)]
 pub fn otxn_param<const PARAM_LEN: usize>(parameter_name: &[u8]) -> Result<[u8; PARAM_LEN]> {
-    let mut uninitialized_buffer: [MaybeUninit<u8>; PARAM_LEN] = MaybeUninit::uninit_array();
-    let buffer: [u8; PARAM_LEN] = unsafe {
-        let result: Result<u64> = c::otxn_param(
-            uninitialized_buffer.as_mut_ptr() as u32,
-            PARAM_LEN as u32,
-            parameter_name.as_ptr() as u32,
-            parameter_name.len() as u32,
-        )
-        .into();
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe {
+            c::otxn_param(
+                buffer_mut_ptr as u32,
+                PARAM_LEN as u32,
+                parameter_name.as_ptr() as u32,
+                parameter_name.len() as u32,
+            )
+            .into()
+        };
 
-        match result {
-            Ok(_) => {}
-            Err(err) => {
-                return Err(err);
-            }
-        }
-
-        MaybeUninit::array_assume_init(uninitialized_buffer)
+        result
     };
 
-    Ok(buffer)
+    init_buffer_mut(func)
 }

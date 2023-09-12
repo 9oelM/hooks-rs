@@ -118,10 +118,11 @@ pub fn prepare_payment_simple(
     encode_signing_pubkey_null(&mut buf_out[SIGNING_PUBKEY_RANGE]);
     encode_account_src(&mut buf_out[ACCOUNT_SRC_RANGE], &acc);
     encode_account_dst(&mut buf_out[ACCOUNT_DST_RANGE], to_address);
-    match etxn_details(&mut buf_out[ETXN_DETAILS_RANGE]) {
+    let details = match etxn_details() {
         Err(e) => return Err(e),
-        Ok(_) => {}
-    }
+        Ok(details) => details,
+    };
+    buf_out[ETXN_DETAILS_RANGE].clone_from_slice(&details);
 
     Ok(())
 }
