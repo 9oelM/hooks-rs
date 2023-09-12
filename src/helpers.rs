@@ -2,13 +2,20 @@ use core::ops::Range;
 
 use crate::api::*;
 
+struct GenericByteArray<T, const N: usize>
+where
+    T: PartialEq,
+{
+    data: [T; N],
+}
+
 /// Tests two buffers for equality
 ///
 /// Pay attention to the GUARD_ID parameter.
 /// This should be unique on every call, through the entire hook code.
 /// Otherwise you will encounter guard violation during the execution of your hook.
 #[inline(always)]
-pub fn is_buffer_equal<const GUARD_ID: u32>(buf_1: &[u8], buf_2: &[u8]) -> bool {
+pub fn is_buffer_equal<T: PartialEq>(buf_1: &[T], buf_2: &[T]) -> bool {
     let buf1_len = buf_1.len();
 
     if buf1_len != buf_2.len() {
@@ -18,7 +25,7 @@ pub fn is_buffer_equal<const GUARD_ID: u32>(buf_1: &[u8], buf_2: &[u8]) -> bool 
     // guarded loop
     let mut i = 0;
     while {
-        _g(GUARD_ID, buf1_len as u32 + 1);
+        max_iter(buf1_len as u32 + 1);
         i < buf1_len
     } {
         if buf_1[i] != buf_2[i] {
@@ -41,7 +48,7 @@ pub fn buffer_zeroize<const GUARD_ID: u32>(buf: &mut [u8]) {
     // guarded loop
     let mut i = 0;
     while {
-        _g(GUARD_ID, buf_len as u32 + 1);
+        max_iter(buf_len as u32 + 1);
         i < buf_len
     } {
         buf[0] = 0;
@@ -227,6 +234,21 @@ fn encode_account(buf_out: &mut [u8], account_id: &AccountId, account_type: Acco
     buf_out[0] = 0x80 + account_type as u8;
     buf_out[1] = 0x14;
     buf_out[2..22].clone_from_slice(&account_id[..]);
+}
+
+impl<T: PartialEq, const N: usize> AsRef<[T]> for GenericByteArray<T, N> {
+    fn as_ref(&self) -> &[T] {
+        self.data.as_ref()
+    }
+}
+
+impl<T, const N: usize> PartialEq for GenericByteArray<T, N>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        is_buffer_equal::<T>(self.as_ref(), other.as_ref())
+    }
 }
 
 #[cfg(test)]
