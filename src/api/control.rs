@@ -48,6 +48,17 @@ pub fn _g(id: u32, max_iter: u32) {
 #[inline(always)]
 pub fn max_iter(max_iter: u32) {
     unsafe {
+        // TODO: this is not quite right, because this will be called
+        // every single time the loop is entered, not just the first time.
+        //
+        // Fortunately enough, XRPL nodes will not care about this problem
+        // when validating SetHook payload of this function included.
+        // However it adds an overhead to the code that is not necessary.
+        //
+        // To solve this problem, we will need to use a macro that would
+        // increment a unique GUARD_ID for each while statement and put it
+        // into the condition statement, so that it could be called like:
+        // while_loop! { ( some_condition ) { ... } }
         GUARD_ID += 1;
         _g(GUARD_ID, max_iter);
     }
