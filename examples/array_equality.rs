@@ -12,10 +12,10 @@ pub extern "C" fn cbak(_: u32) -> i64 {
 pub extern "C" fn hook(_: u32) -> i64 {
     max_iter(1);
 
-    const STATE_KEY: &[u8; 14] = b"same same same";
-    const STATE_VALUE: &[u8; 14] = b"same same same";
+    const A: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
+    const B: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
 
-    if STATE_KEY == STATE_VALUE {
+    if A == B {
         accept(b"", 0);
     } else {
         rollback(b"", -1);

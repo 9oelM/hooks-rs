@@ -2,7 +2,19 @@ use core::ops::Range;
 
 use crate::api::*;
 
-struct IntArray<T, const N: usize>
+/// Comparable array of variables.
+/// 
+/// This can be used when manually calling `is_buffer_equal` to compare two arrays
+/// is to be avoided.
+/// 
+/// Using ComparableArray over `is_buffer_equal` is generally preferred, since
+/// it is more readable.
+/// 
+/// # Example
+/// ```
+/// 
+/// ```
+pub struct ComparableArray<T, const N: usize>
 where
     T: PartialEq,
 {
@@ -237,13 +249,21 @@ fn encode_account(buf_out: &mut [u8], account_id: &AccountId, account_type: Acco
     buf_out[2..22].clone_from_slice(&account_id[..]);
 }
 
-impl<T: PartialEq, const N: usize> AsRef<[T]> for IntArray<T, N> {
+impl<T: PartialEq, const N: usize> ComparableArray<T, N> {
+    /// Create a new ComparableArray
+    #[inline(always)]
+    pub const fn new(data: [T; N]) -> Self {
+        Self { data }
+    }
+}
+
+impl<T: PartialEq, const N: usize> AsRef<[T]> for ComparableArray<T, N> {
     fn as_ref(&self) -> &[T] {
         self.data.as_ref()
     }
 }
 
-impl<T, const N: usize> PartialEq for IntArray<T, N>
+impl<T, const N: usize> PartialEq for ComparableArray<T, N>
 where
     T: PartialEq,
 {
@@ -289,4 +309,24 @@ mod tests {
             ]
         )
     }
+
+    // #[wasm_bindgen_test]
+    // fn comparable_array_equal() {
+    //     const A: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
+    //     const B: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
+
+    //     // assert_eq! requires ComparableArray to implement Debug trait,
+    //     // but this is much simpler
+    //     assert!(A == B);
+    // }
+    
+    // #[wasm_bindgen_test]
+    // fn comparable_array_not_equal() {
+    //     const A: ComparableArray<u8, 14> = ComparableArray::new(*b"diff diff diff");
+    //     const B: ComparableArray<u8, 14> = ComparableArray::new(*b"same same same");
+
+    //     // assert_eq! requires ComparableArray to implement Debug trait,
+    //     // but this is much simpler
+    //     assert!(A == B);
+    // }
 }
