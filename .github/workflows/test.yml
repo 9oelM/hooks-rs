@@ -62,7 +62,7 @@ jobs:
           tar -xzf binaryen-version_115-x86_64-linux.tar.gz
           cd binaryen-version_115/bin
           chmod u+x wasm-opt
-          wasm-opt -h
+          ./wasm-opt -h
           echo $PWD >> $GITHUB_PATH
           cd ..
           wasm-opt -h
