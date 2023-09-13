@@ -60,7 +60,11 @@ jobs:
         run: |
           curl https://github.com/WebAssembly/binaryen/releases/download/version_115/binaryen-version_115-x86_64-linux.tar.gz -L -O
           tar -xzf binaryen-version_115-x86_64-linux.tar.gz
-          echo $PWD/binaryen-version_115/bin >> $GITHUB_PATH
+          cd binaryen-version_115/bin
+          chmod u+x wasm-opt
+          wasm-opt -h
+          echo $PWD >> $GITHUB_PATH
+          cd ..
           wasm-opt -h
 
       - name: "Setup Node.js test environment"
