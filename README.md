@@ -9,6 +9,7 @@ XRPL hooks in Rust.
 
 - Install Rust nightly.
 - Build and make [`hook-cleaner`](https://github.com/XRPLF/hook-cleaner-c) available in your `PATH`.
+- Install [`wasm-opt` from binaryet repo](https://github.com/WebAssembly/binaryen/releases) and make it available in your `PATH`.
 
 ## Examples
 
@@ -55,8 +56,8 @@ Float
 - [x] `float_negate`
 - [x] `float_compare`
 - [x] `float_sum`
-- [x] `float_sto`
-- [ ] `float_sto_set`
+- [ ] `float_sto`
+- [x] `float_sto_set`
 - [x] `float_invert`
 - [x] `float_divide`
 - [x] `float_one`

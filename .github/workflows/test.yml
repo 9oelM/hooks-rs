@@ -47,6 +47,22 @@ jobs:
           chmod u+x hook-cleaner
           echo $PWD >> $GITHUB_PATH
 
+      - name: "Install hook guard checker"
+        run: |
+          git clone https://github.com/RichardAH/guard-checker/
+          cd guard-checker
+          git reset --hard de69e8aa054d49612dda7046962003beb88c0749
+          make
+          chmod u+x guard_checker
+          echo $PWD >> $GITHUB_PATH
+
+      - name: "Install binaryen to use wasm-opt"
+        run: |
+          curl https://github.com/WebAssembly/binaryen/releases/download/version_115/binaryen-version_115-x86_64-linux.tar.gz -L -O
+          tar -xzf binaryen-version_115-x86_64-linux.tar.gz
+          echo $PWD/binaryen-version_115/bin >> $GITHUB_PATH
+          wasm-opt -h
+
       - name: "Setup Node.js test environment"
         uses: actions/setup-node@v3
         with:

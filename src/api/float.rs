@@ -95,7 +95,7 @@ impl XFL {
     /// Get the exponent of an XFL enclosing number
     #[inline(always)]
     pub fn exponent(&self) -> i64 {
-        unsafe { c::float_exponent(self.0) }
+        (((self.0 >> 54 & 0xFF) as i32) - 97).into()
     }
 
     /// Get the exponent of an XFL enclosing number

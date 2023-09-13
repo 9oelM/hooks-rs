@@ -80,9 +80,16 @@ export class TestUtils {
       `examples`
     );
     const wasmInFile = path.resolve(wasmDir, `${hookName}.wasm`);
-    const wasmOutFile = path.resolve(wasmDir, `${hookName}-cleaned.wasm`);
-    await exec(`hook-cleaner ${wasmInFile} ${wasmOutFile}`);
-    const wasm = await readFile(wasmOutFile);
+    const wasmOutFlatted = path.resolve(wasmDir, `${hookName}-flattened.wasm`);
+    // Maximum allowable depth of blocks reached is 16 levels in hooks GuardCheck.
+    // Otherwise, the node will not validate the SetHook transaction.
+    // Therefore, flatten it using wasm-opt.
+    await exec(
+      `wasm-opt ${wasmInFile} --flatten --rereloop -Oz -Oz -o ${wasmOutFlatted}`
+    );
+    const wasmOutCleaned = path.resolve(wasmDir, `${hookName}-cleaned.wasm`);
+    await exec(`hook-cleaner ${wasmOutFlatted} ${wasmOutCleaned}`);
+    const wasm = await readFile(wasmOutCleaned);
     const wasmHex = wasm.toString(`hex`).toUpperCase();
     hook.CreateCode = wasmHex;
 
