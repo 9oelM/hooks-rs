@@ -21,10 +21,8 @@ describe("float.rs", () => {
     ]);
     alice = Wallet.fromSecret(secret0);
     bob = Wallet.fromSecret(secret1);
-    console.log(alice.address);
     await new Promise((resolve) => setTimeout(resolve, 5000));
     await TestUtils.setHook(client, alice.seed!, hook);
-    console.log(1);
   }, 3 * 60_000);
 
   afterAll(async () => {
