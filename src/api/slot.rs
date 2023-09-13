@@ -82,7 +82,5 @@ pub fn slot_type(slot_no: u32, flags: SlotTypeFlags) -> Result<FieldOrXrpAmount>
 /// Parse the STI_AMOUNT in the specified slot and return it as an XFL enclosed number
 #[inline(always)]
 pub fn slot_float(slot_no: u32) -> Result<XFL> {
-    let res = unsafe { c::slot_float(slot_no) };
-
-    res.into()
+    XFL::from_verified_i64(unsafe { c::slot_float(slot_no) })
 }

@@ -1,88 +1,15 @@
+use core::{
+    cmp::Ordering,
+    ops::{Add, Div, Mul, Neg, Sub},
+};
+
 use crate::c;
 
 use super::*;
 
-/// XFL floating point numbers
+/// XFL floating point number
 #[derive(Clone, Copy)]
-pub struct XFL(pub(super) i64 /* enclosing number */);
-
-/// Create a float from an exponent and mantissa
-#[inline(always)]
-pub fn float_set(exponent: i32, mantissa: i64) -> Result<XFL> {
-    let res = unsafe { c::float_set(exponent, mantissa) };
-
-    res.into()
-}
-
-/// Multiply two XFL numbers together
-#[inline(always)]
-pub fn float_multiply(float1: XFL, float2: XFL) -> Result<XFL> {
-    let res = unsafe { c::float_multiply(float1.0, float2.0) };
-
-    res.into()
-}
-
-/// Multiply an XFL floating point by a non-XFL numerator and denominator
-#[inline(always)]
-pub fn float_mulratio(
-    float1: XFL,
-    round_up: bool,
-    numerator: u32,
-    denominator: u32,
-) -> Result<XFL> {
-    let res = unsafe { c::float_mulratio(float1.0, round_up as _, numerator, denominator) };
-
-    res.into()
-}
-
-/// Negate an XFL floating point number
-#[inline(always)]
-pub fn float_negate(float: XFL) -> Result<XFL> {
-    let res = unsafe { c::float_negate(float.0) };
-
-    res.into()
-}
-
-/// XFL compare mode
-#[allow(missing_docs)]
-#[derive(Clone, Copy)]
-pub enum XFLCompareMode {
-    Less,
-    Equal,
-    Greater,
-    NotEqual,
-    LessOrEqual,
-    GreaterOrEqual,
-}
-
-/// Perform a comparison on two XFL floating point numbers
-#[inline(always)]
-pub fn float_compare(float1: XFL, float2: XFL, mode: XFLCompareMode) -> Result<bool> {
-    let mode = match mode {
-        XFLCompareMode::Less => c::COMPARE_LESS,
-        XFLCompareMode::Equal => c::COMPARE_EQUAL,
-        XFLCompareMode::Greater => c::COMPARE_GREATER,
-        XFLCompareMode::NotEqual => c::COMPARE_LESS | c::COMPARE_GREATER,
-        XFLCompareMode::LessOrEqual => c::COMPARE_LESS | c::COMPARE_EQUAL,
-        XFLCompareMode::GreaterOrEqual => c::COMPARE_GREATER | c::COMPARE_EQUAL,
-    };
-
-    let res = unsafe { c::float_compare(float1.0, float2.0, mode) };
-
-    match res {
-        0 => Ok(false),
-        1 => Ok(true),
-        _ => Err(Error::from_code(res as _)),
-    }
-}
-
-/// Add two XFL numbers together
-#[inline(always)]
-pub fn float_sum(float1: XFL, float2: XFL) -> Result<XFL> {
-    let res = unsafe { c::float_sum(float1.0, float2.0) };
-
-    res.into()
-}
+pub struct XFL(pub i64);
 
 /// Output an XFL as a serialized object
 #[inline(always)]
@@ -109,84 +36,165 @@ pub fn float_sto(
     res.into()
 }
 
-/// Read a serialized amount into an XFL
-#[inline(always)]
-pub fn float_sto_set(sto_xfl: &[u8]) -> Result<XFL> {
-    let res = unsafe { c::float_sto_set(sto_xfl.as_ptr() as _, sto_xfl.len() as _) };
+impl XFL {
+    /// Create a new XFL number from an exponent and mantissa
+    #[inline(always)]
+    pub fn new(exponent: i32, mantissa: i64) -> Result<Self> {
+        Self::from_verified_i64(unsafe { c::float_set(exponent, mantissa) })
+    }
 
-    res.into()
-}
+    // Create a new XFL number from a verified i64, that is,
+    // a number that is known to be a valid XFL number.
+    //
+    // Because it is too dangerous to be exposed to the user,
+    // this function is only visible to `pub(crate)` level.
+    //
+    // For that reason, `From<i64> for Result<XFL>` is not implemented.
+    //
+    // Only use this function to create an XFL number from
+    // C function calls.
+    #[inline(always)]
+    pub(crate) fn from_verified_i64(source: i64) -> Result<Self> {
+        match source {
+            source if source >= 0 => Ok(XFL(source)),
+            _ => Err(Error::from_code(source as _)),
+        }
+    }
 
-/// Divide one by an XFL floating point number
-#[inline(always)]
-pub fn float_invert(float: XFL) -> Result<XFL> {
-    let res = unsafe { c::float_invert(float.0) };
+    /// Read a serialized XFL amount into an XFL
+    #[inline(always)]
+    pub fn from_sto(serialized_xfl: &[u8; XFL_LEN]) -> Result<Self> {
+        Self::from_verified_i64(unsafe {
+            c::float_sto_set(serialized_xfl.as_ptr() as _, XFL_LEN as _)
+        })
+    }
 
-    res.into()
-}
+    /// Return the number 1 represented in an XFL enclosing number
+    #[inline(always)]
+    pub fn one() -> Self {
+        // Instead of using c::float_one, we use the computed enclosing
+        // value directly.
+        XFL(6089866696204910592)
+    }
 
-/// Divide an XFL by another XFL floating point number
-#[inline(always)]
-pub fn float_divide(float1: XFL, float2: XFL) -> Result<XFL> {
-    let res = unsafe { c::float_divide(float1.0, float2.0) };
+    /// Convert an XFL floating point into an integer (floor).
+    /// The behavior is as follows:
+    /// 1. Left shift (multiply by 10) the XFL by the number of specified decimal places
+    /// 2. Convert the resulting XFL to an integer, discarding any remainder
+    /// 3. Return the integer
+    #[inline(always)]
+    pub fn to_int64(&self, decimal_places: u32, is_absolute: bool) -> Result<i64> {
+        let result = unsafe { c::float_int(self.0, decimal_places, is_absolute as _) };
 
-    res.into()
-}
+        match result {
+            res if res >= 0 => Ok(res),
+            _ => Err(Error::from_code(result as _)),
+        }
+    }
 
-/// Return the number 1 represented in an XFL enclosing number
-#[inline(always)]
-pub fn float_one() -> XFL {
-    XFL(unsafe { c::float_one() })
-}
+    /// Get the exponent of an XFL enclosing number
+    #[inline(always)]
+    pub fn exponent(&self) -> i64 {
+        (((self.0 >> 54 & 0xFF) as i32) - 97).into()
+    }
 
-/// Get the exponent of an XFL enclosing number
-#[inline(always)]
-pub fn float_exponent(float: XFL) -> i64 {
-    unsafe { c::float_exponent(float.0) }
-}
+    /// Get the exponent of an XFL enclosing number
+    #[inline(always)]
+    pub fn mantissa(&self) -> i64 {
+        unsafe { c::float_mantissa(self.0) }
+    }
 
-/// Get the mantissa of an XFL enclosing number
-#[inline(always)]
-pub fn float_mantissa(float: XFL) -> i64 {
-    unsafe { c::float_mantissa(float.0) }
-}
-
-/// Get the sign of an XFL enclosing number
-#[inline(always)]
-pub fn float_sign(float: XFL) -> Result<bool> {
-    match unsafe { c::float_sign(float.0) } {
-        0 => Ok(false),
-        1 => Ok(true),
-        res => Err(Error::from_code(res as _)),
+    /// Multiply an XFL floating point by a non-XFL numerator and denominator
+    #[inline(always)]
+    pub fn mulratio(&self, round_up: bool, numerator: u32, denominator: u32) -> Result<XFL> {
+        Self::from_verified_i64(unsafe {
+            c::float_mulratio(self.0, round_up as _, numerator, denominator)
+        })
     }
 }
 
-/// Set the exponent of an XFL enclosing number
-#[inline(always)]
-pub fn float_exponent_set(float: XFL, exponent: i32) -> Result<XFL> {
-    let res = unsafe { c::float_exponent_set(float.0, exponent) };
+impl Add for XFL {
+    type Output = Result<XFL>;
 
-    res.into()
+    #[inline(always)]
+    fn add(self, other: XFL) -> Self::Output {
+        Self::from_verified_i64(unsafe { c::float_sum(self.0, other.0) })
+    }
 }
 
-/// Set the mantissa of an XFL enclosing number
-#[inline(always)]
-pub fn float_mantissa_set(float: XFL, mantissa: i64) -> Result<XFL> {
-    let res = unsafe { c::float_mantissa_set(float.0, mantissa) };
+impl Sub for XFL {
+    type Output = Result<XFL>;
 
-    res.into()
+    #[inline(always)]
+    fn sub(self, other: XFL) -> Self::Output {
+        unsafe {
+            let rhs = match Self::from_verified_i64(c::float_negate(other.0)) {
+                Ok(rhs) => rhs,
+                Err(e) => return Err(e),
+            };
+
+            Self::from_verified_i64(c::float_sum(self.0, rhs.0))
+        }
+    }
 }
 
-/// Set the sign of an XFL enclosing number
-#[inline(always)]
-pub fn float_sign_set(float: XFL, sign: bool) -> XFL {
-    XFL(unsafe { c::float_sign_set(float.0, sign as _) })
+impl Mul for XFL {
+    type Output = Result<XFL>;
+
+    #[inline(always)]
+    fn mul(self, other: XFL) -> Self::Output {
+        Self::from_verified_i64(unsafe { c::float_multiply(self.0, other.0) })
+    }
 }
 
-/// Convert an XFL floating point into an integer (floor)
-#[inline(always)]
-pub fn float_int(float: XFL, decimal_places: u32, absolute: bool) -> Result<u64> {
-    let res = unsafe { c::float_int(float.0, decimal_places, absolute as _) };
+impl Div for XFL {
+    type Output = Result<XFL>;
 
-    res.into()
+    #[inline(always)]
+    fn div(self, other: XFL) -> Self::Output {
+        Self::from_verified_i64(unsafe { c::float_divide(self.0, other.0) })
+    }
+}
+
+impl Neg for XFL {
+    type Output = Result<XFL>;
+
+    #[inline(always)]
+    fn neg(self) -> Self::Output {
+        Self::from_verified_i64(unsafe { c::float_negate(self.0) })
+    }
+}
+
+impl PartialEq for XFL {
+    #[inline(always)]
+    fn eq(&self, other: &Self) -> bool {
+        let res = unsafe { c::float_compare(self.0, other.0, c::COMPARE_EQUAL) };
+
+        match res {
+            1 => true,
+            // This is based on the invariant that the arguments to eq function
+            // are all valid XFL numbers.
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for XFL {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        unsafe {
+            match c::float_compare(self.0, other.0, c::COMPARE_EQUAL) {
+                1 => Some(Ordering::Equal),
+                0 => {
+                    // This is because float_compare cannot return an ordering at one go.
+                    match c::float_compare(self.0, other.0, c::COMPARE_LESS) {
+                        1 => Some(Ordering::Less),
+                        0 => Some(Ordering::Greater),
+                        _ => None,
+                    }
+                }
+                _ => None,
+            }
+        }
+    }
 }

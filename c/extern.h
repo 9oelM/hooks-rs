@@ -44,12 +44,6 @@ extern int64_t
 float_divide(int64_t float1, int64_t float2);
 
 extern int64_t
-float_exponent(int64_t float1);
-
-extern int64_t
-float_exponent_set(int64_t float1, int32_t exponent);
-
-extern int64_t
 float_int(int64_t float1, uint32_t decimal_places, uint32_t abs);
 
 extern int64_t
