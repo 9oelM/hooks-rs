@@ -38,8 +38,11 @@ pub mod api;
 /// A few utilities
 pub mod helpers;
 
+/// Transaction builders
+pub mod transaction;
+
 // Prelude
-pub use {api::*, helpers::*};
+pub use {api::*, helpers::*, transaction::*};
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;

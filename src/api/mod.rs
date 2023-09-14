@@ -823,3 +823,17 @@ impl From<Error> for i64 {
         err as _
     }
 }
+
+impl From<AccountType> for u8 {
+    #[inline(always)]
+    fn from(account_type: AccountType) -> Self {
+        account_type as _
+    }
+}
+
+impl From<AmountType> for u8 {
+    #[inline(always)]
+    fn from(amount_type: AmountType) -> Self {
+        amount_type as _
+    }
+}

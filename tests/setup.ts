@@ -91,8 +91,12 @@ export class TestUtils {
       `wasm-opt ${wasmInFile} --flatten --rereloop -Oz -Oz -o ${wasmOutFlattened}`
     );
     const wasmOutCleaned = path.resolve(wasmDir, `${hookName}-cleaned.wasm`);
-    await exec(`hook-cleaner ${wasmOutFlattened} ${wasmOutCleaned}`);
-    await exec(`guard_checker ${wasmOutCleaned}`);
+    const hookCleanerOut = await exec(
+      `hook-cleaner ${wasmOutFlattened} ${wasmOutCleaned}`
+    );
+    console.log(JSON.stringify(hookCleanerOut, null, 2));
+    const guardCheckerOut = await exec(`guard_checker ${wasmOutCleaned}`);
+    console.log(JSON.stringify(guardCheckerOut, null, 2));
     const wasm = await readFile(wasmOutCleaned);
     const wasmHex = wasm.toString(`hex`).toUpperCase();
     hook.CreateCode = wasmHex;
