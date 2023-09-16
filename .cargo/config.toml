@@ -1,2 +1,7 @@
 [build]
 target = "wasm32-unknown-unknown"
+# rustflags = '-C target-feature=-bulk-memory,+mutable-globals'
+# rustflags = '-C target-feature=-bulk-memory,+mutable-globals'  -C link-arg=--import-memory
+# optimization -O3
+[profile.release]
+# opt-level = 3

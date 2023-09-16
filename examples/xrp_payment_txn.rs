@@ -1,7 +1,6 @@
-//! A hook that accepts any transaction coming through it
-
 #![no_std]
 #![no_main]
+#![no_builtins]
 
 use hooks_rs::*;
 
@@ -19,7 +18,7 @@ pub extern "C" fn hook(_: u32) -> i64 {
     let otxn_account = otxn_field::<ACC_ID_LEN>(FieldId::Account).unwrap_line_number();
     let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
     let xrp_payment_txn = xrp_payment_txn_builder.build().unwrap_line_number();
-    let txn_hash = emit(&xrp_payment_txn).unwrap_line_number();
+    let _ = emit(&xrp_payment_txn).unwrap_line_number();
 
-    accept(&txn_hash, 0);
+    accept(b"", 0);
 }

@@ -4,7 +4,6 @@
 #![allow(unused_imports)]
 // allow unused var
 #![allow(unused_variables)]
-
 use core::mem::MaybeUninit;
 
 use crate::api::*;
@@ -181,13 +180,41 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
         unsafe {
             self.buf.get_unchecked_mut(self.pos).write(0x73);
             self.buf.get_unchecked_mut(self.pos + 1).write(0x21);
-            let i = 2;
-            while {
-                max_iter(33);
-                i < 35
-            } {
-                self.buf.get_unchecked_mut(self.pos + i).write(0);
-            }
+
+            // avoid creating loops in the resulting wasm
+            self.buf.get_unchecked_mut(self.pos + 2).write(0);
+            self.buf.get_unchecked_mut(self.pos + 3).write(0);
+            self.buf.get_unchecked_mut(self.pos + 4).write(0);
+            self.buf.get_unchecked_mut(self.pos + 5).write(0);
+            self.buf.get_unchecked_mut(self.pos + 6).write(0);
+            self.buf.get_unchecked_mut(self.pos + 7).write(0);
+            self.buf.get_unchecked_mut(self.pos + 8).write(0);
+            self.buf.get_unchecked_mut(self.pos + 9).write(0);
+            self.buf.get_unchecked_mut(self.pos + 10).write(0);
+            self.buf.get_unchecked_mut(self.pos + 11).write(0);
+            self.buf.get_unchecked_mut(self.pos + 12).write(0);
+            self.buf.get_unchecked_mut(self.pos + 13).write(0);
+            self.buf.get_unchecked_mut(self.pos + 14).write(0);
+            self.buf.get_unchecked_mut(self.pos + 15).write(0);
+            self.buf.get_unchecked_mut(self.pos + 16).write(0);
+            self.buf.get_unchecked_mut(self.pos + 17).write(0);
+            self.buf.get_unchecked_mut(self.pos + 18).write(0);
+            self.buf.get_unchecked_mut(self.pos + 19).write(0);
+            self.buf.get_unchecked_mut(self.pos + 20).write(0);
+            self.buf.get_unchecked_mut(self.pos + 21).write(0);
+            self.buf.get_unchecked_mut(self.pos + 22).write(0);
+            self.buf.get_unchecked_mut(self.pos + 23).write(0);
+            self.buf.get_unchecked_mut(self.pos + 24).write(0);
+            self.buf.get_unchecked_mut(self.pos + 25).write(0);
+            self.buf.get_unchecked_mut(self.pos + 26).write(0);
+            self.buf.get_unchecked_mut(self.pos + 27).write(0);
+            self.buf.get_unchecked_mut(self.pos + 28).write(0);
+            self.buf.get_unchecked_mut(self.pos + 29).write(0);
+            self.buf.get_unchecked_mut(self.pos + 30).write(0);
+            self.buf.get_unchecked_mut(self.pos + 31).write(0);
+            self.buf.get_unchecked_mut(self.pos + 32).write(0);
+            self.buf.get_unchecked_mut(self.pos + 33).write(0);
+            self.buf.get_unchecked_mut(self.pos + 34).write(0);
         }
         self.pos += 35;
     }
@@ -195,22 +222,32 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
     /// Encodes an account.
     #[inline(always)]
     pub fn encode_account(&mut self, account_id: &AccountId, account_type: AccountType) {
-        let account_type: u8 = account_type.into();
         unsafe {
+            let account_type: u8 = account_type.into();
             self.buf.get_unchecked_mut(self.pos).write(0x80 + account_type);
             self.buf.get_unchecked_mut(self.pos + 1).write(0x14);
-        }
-        let mut i = 0;
-        while {
-            max_iter(21);
-            i < 20
-        } {
-            unsafe {
-                self.buf.get_unchecked_mut(
-                    self.pos + 2 + i
-                ).write(*account_id.get_unchecked(i));
-            }
-            i += 1;
+
+            // avoid creating loops in the resulting wasm
+            self.buf.get_unchecked_mut(self.pos + 2).write(*account_id.get_unchecked(0));
+            self.buf.get_unchecked_mut(self.pos + 3).write(*account_id.get_unchecked(1));
+            self.buf.get_unchecked_mut(self.pos + 4).write(*account_id.get_unchecked(2));
+            self.buf.get_unchecked_mut(self.pos + 5).write(*account_id.get_unchecked(3));
+            self.buf.get_unchecked_mut(self.pos + 6).write(*account_id.get_unchecked(4));
+            self.buf.get_unchecked_mut(self.pos + 7).write(*account_id.get_unchecked(5));
+            self.buf.get_unchecked_mut(self.pos + 8).write(*account_id.get_unchecked(6));
+            self.buf.get_unchecked_mut(self.pos + 9).write(*account_id.get_unchecked(7));
+            self.buf.get_unchecked_mut(self.pos + 10).write(*account_id.get_unchecked(8));
+            self.buf.get_unchecked_mut(self.pos + 11).write(*account_id.get_unchecked(9));
+            self.buf.get_unchecked_mut(self.pos + 12).write(*account_id.get_unchecked(10));
+            self.buf.get_unchecked_mut(self.pos + 13).write(*account_id.get_unchecked(11));
+            self.buf.get_unchecked_mut(self.pos + 14).write(*account_id.get_unchecked(12));
+            self.buf.get_unchecked_mut(self.pos + 15).write(*account_id.get_unchecked(13));
+            self.buf.get_unchecked_mut(self.pos + 16).write(*account_id.get_unchecked(14));
+            self.buf.get_unchecked_mut(self.pos + 17).write(*account_id.get_unchecked(15));
+            self.buf.get_unchecked_mut(self.pos + 18).write(*account_id.get_unchecked(16));
+            self.buf.get_unchecked_mut(self.pos + 19).write(*account_id.get_unchecked(17));
+            self.buf.get_unchecked_mut(self.pos + 20).write(*account_id.get_unchecked(18));
+            self.buf.get_unchecked_mut(self.pos + 21).write(*account_id.get_unchecked(19));
         }
         self.pos += 22;
     }
@@ -272,13 +309,23 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         // signing public key, but it is always null
         txn_buffer.encode_signing_pubkey_as_null();
         // source account
-        // txn_buffer.encode_account(&hook_account, AccountType::Account);
+        txn_buffer.encode_account(&hook_account, AccountType::Account);
         // // destination account
         // txn_buffer.encode_account(self.to_address, AccountType::Destination);
         // // transaction metadata
         // let etxn_metadata = match etxn_details() {
         //     Err(e) => return Err(e),
         //     Ok(details) => details,
+        // };
+        // unsafe {
+        //     let new_slice = core::slice::from_raw_parts_mut(
+        //         etxn_metadata.as_mut_ptr(), EMIT_DETAILS_SIZE);
+
+        //     core::ptr::copy_nonoverlapping(txn_buffer.buf.as_mut_ptr().add(txn_buffer.pos), new_slice.as_mut_ptr(), EMIT_DETAILS_SIZE);
+        // }
+        // match insert_etxn_details(txn_buffer.buf[txn_buffer.pos..txn_buffer.pos + EMIT_DETAILS_SIZE].as_mut_ptr() as u32) {
+        //     Err(e) => return Err(e),
+        //     Ok(_) => (),
         // };
         // let mut i = 0;
         // while  {
@@ -292,10 +339,7 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         //     }
         //     i += 1;
         // }
-        // txn_buffer.pos += 105;
-        // // // Problem: the addition of below line creates a loop somehow in the 
-        // // // generated wasm code and obviously it doesn't have the guard function, 
-        // // // so it stops the wasm from being validated
+        txn_buffer.pos += EMIT_DETAILS_SIZE;
         let initialized_buffer = unsafe {
             MaybeUninit::array_assume_init(txn_buffer.buf)
         };
