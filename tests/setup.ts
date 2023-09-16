@@ -75,7 +75,7 @@ export class TestUtils {
       __dirname,
       `..`,
       `target`,
-      `wasm32-wasi`,
+      `wasm32-unknown-unknown`,
       `release`,
       `examples`
     );

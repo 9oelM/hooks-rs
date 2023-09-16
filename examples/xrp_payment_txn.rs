@@ -20,7 +20,7 @@ pub extern "C" fn hook(_: u32) -> i64 {
     };
     let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
     let xrp_payment_txn = xrp_payment_txn_builder.build().unwrap_line_number();
-    let _ = emit(&xrp_payment_txn).unwrap_line_number();
+    let txn_hash = emit(&xrp_payment_txn).unwrap_line_number();
 
-    accept(b"", 0);
+    accept(&txn_hash, 0);
 }

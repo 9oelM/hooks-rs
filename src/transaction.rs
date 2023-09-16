@@ -516,9 +516,7 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         // signing public key, but it is always null
         txn_buffer.encode_signing_pubkey_as_null();
         // source account
-        max_iter(55);
         txn_buffer.encode_account(&hook_account, AccountType::Account);
-        max_iter(56);
         // // destination account
         txn_buffer.encode_account(self.to_address, AccountType::Destination);
         // transaction metadata
