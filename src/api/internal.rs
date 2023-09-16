@@ -1,5 +1,5 @@
 use super::*;
-use core::mem::MaybeUninit;
+use core::mem::{MaybeUninit, self};
 
 pub(crate) fn init_buffer_mut<const BUFFER_LEN: usize, F>(c_func: F) -> Result<[u8; BUFFER_LEN]>
 where
@@ -16,7 +16,9 @@ where
             }
         }
 
-        MaybeUninit::array_assume_init(uninitialized_buffer)
+        mem::transmute::<_, [u8; BUFFER_LEN]>(
+            uninitialized_buffer.as_ptr().cast::<[u8; BUFFER_LEN]>().read_volatile()
+        )
     };
 
     Ok(buffer)

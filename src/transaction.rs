@@ -522,25 +522,27 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         // // destination account
         txn_buffer.encode_account(self.to_address, AccountType::Destination);
         // transaction metadata
-        // let etxn_metadata = match etxn_details() {
-        //     Err(e) => return Err(e),
-        //     Ok(details) => unsafe { details.as_ptr().cast::<[u8; 105]>().read_volatile() },
-        // };
-        // let mut i = 0;
-        // while  {
-        //     max_iter(106);
-        //     i < 105
-        // } {
-        //     unsafe {
-        //         txn_buffer.buf.get_unchecked_mut(txn_buffer.pos + i)
-        //         .as_mut_ptr()
-        //         .write_volatile(*etxn_metadata.get_unchecked(i));
-        //     }
-        //     i += 1;
-        // }
+        let etxn_metadata = match etxn_details() {
+            Err(e) => return Err(e),
+            Ok(details) => unsafe { details.as_ptr().cast::<[u8; 105]>().read_volatile() },
+        };
+        let mut i = 0;
+        while  {
+            max_iter(106);
+            i < 105
+        } {
+            unsafe {
+                txn_buffer.buf.get_unchecked_mut(txn_buffer.pos + i)
+                .as_mut_ptr()
+                .write_volatile(*etxn_metadata.get_unchecked(i));
+            }
+            i += 1;
+        }
         txn_buffer.pos += EMIT_DETAILS_SIZE;
         // let initialized_buffer = unsafe { MaybeUninit::array_assume_init(txn_buffer.buf) };
         let initialized_buffer = unsafe {
+            // replacement of array_assume_init since it sometimes causes memcpy to be called
+            // when the array is sufficiently large
              mem::transmute::<_, [u8; 248]>(
                 txn_buffer.buf.as_ptr().cast::<[u8; 248]>().read_volatile()
             )
