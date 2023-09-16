@@ -21,6 +21,12 @@ pub fn etxn_details() -> Result<[u8; EMIT_DETAILS_SIZE]> {
     })
 }
 
+/// Produce an sfEmitDetails suitable for a soon-to-be emitted transaction
+#[inline(always)]
+pub fn insert_etxn_details(txn_buffer_mut_ptr: u32) -> Result<u64> {
+    unsafe { c::etxn_details(txn_buffer_mut_ptr, EMIT_DETAILS_SIZE as u32).into() }
+}
+
 /// Estimate the required fee for a txn to be emitted successfully
 #[inline(always)]
 pub fn etxn_fee_base(tx_blob: &[u8]) -> i64 {

@@ -75,15 +75,11 @@ export class TestUtils {
       __dirname,
       `..`,
       `target`,
-      `wasm32-unknown-unknown`,
+      `wasm32-wasi`,
       `release`,
       `examples`
     );
-    const debugDir = path.resolve(
-      __dirname,
-      `..`,
-      `target`,
-    );
+    const debugDir = path.resolve(__dirname, `..`, `target`);
     const wasmInFile = path.resolve(wasmDir, `${hookName}.wasm`);
     const wasmOutFlattened = path.resolve(
       wasmDir,
@@ -101,10 +97,22 @@ export class TestUtils {
     );
     console.log(JSON.stringify(hookCleanerOut, null, 2));
     await Promise.all([
-      exec(`wasm2wat ${wasmInFile} -o ${path.resolve(debugDir, `${hookName}.wat`)}`),
-      exec(`wasm2wat ${wasmOutCleaned} -o ${path.resolve(debugDir, `${hookName}-cleaned.wat`)}`),
-      exec(`wasm2wat ${wasmOutFlattened} -o ${path.resolve(debugDir, `${hookName}-flattened.wat`)}`),
-    ])
+      exec(
+        `wasm2wat ${wasmInFile} -o ${path.resolve(debugDir, `${hookName}.wat`)}`
+      ),
+      exec(
+        `wasm2wat ${wasmOutCleaned} -o ${path.resolve(
+          debugDir,
+          `${hookName}-cleaned.wat`
+        )}`
+      ),
+      exec(
+        `wasm2wat ${wasmOutFlattened} -o ${path.resolve(
+          debugDir,
+          `${hookName}-flattened.wat`
+        )}`
+      ),
+    ]);
     try {
       const guardCheckerOut = await exec(`guard_checker ${wasmOutCleaned}`);
       console.log(JSON.stringify(guardCheckerOut, null, 2));
