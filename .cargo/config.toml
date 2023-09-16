@@ -1,14 +1,16 @@
 [build]
-target = "wasm32-wasi"
+target = "wasm32-unknown-unknown"
 # this forces wasi to use the reactor model, which does not ship main function by default
-rustflags = ["-Z","wasi-exec-model=reactor"]
-# rustflags = '-C target-feature=-bulk-memory,+mutable-globals -C linker=wasm-ld'
+rustflags = [
+  # "-Z","wasi-exec-model=reactor", 
+  "-C", "target-feature=-bulk-memory,+mutable-globals", "-C", "llvm-args=--disable-memop-opt", "-C", "llvm-args=--disable-memcpy-idiom", "-C", "llvm-args=--disable-memmove-idiom", "-C", "linker=gcc"]
+# rustflags = ''
 
 # rustflags = '-C target-feature=-bulk-memory,+mutable-globals'  -C link-arg=--import-memory
 # optimization -O3
 [profile.release]
-opt-level = 1
-lto = false
+opt-level = 3
+lto = true
 [unstable]
 # build-std-features = []
 # build-std = ["core"]
