@@ -1,16 +1,9 @@
 //! XRPL Hooks API
 //!
 //! This crate allows you to write XRPL hooks in Rust.
-//!
-//! Before you begin, it is highly recommended that you read
-//! the [official docs](https://xrpl-hooks.readme.io/) carefully.
-//!
-//! # Examples
-//!
-//! For a quick start and to view examples,
-//! use the [hook template](https://github.com/otov4its/xrpl-hook-template/)
 
 #![no_std]
+#![no_builtins]
 #![deny(
     warnings,
     clippy::all,
