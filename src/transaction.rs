@@ -479,7 +479,9 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         let current_ledger_sequence = ledger_seq() as u32;
         let hook_account = match hook_account() {
             Err(e) => return Err(e),
-            Ok(acc) => acc,
+            Ok(acc) => unsafe {
+                acc.as_ptr().cast::<[u8; 20]>().read_volatile()
+            },
         };
         let uninitialized_buffer: [MaybeUninit<u8>; 248] = MaybeUninit::uninit_array();
         let mut txn_buffer = TransactionBuffer {
@@ -502,19 +504,21 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
             FieldCode::FirstLedgerSequence.into(),
         );
         // last ledger sequence
-        // txn_buffer.encode_u32_with_field_id(
-        //     current_ledger_sequence + 5,
-        //     FieldCode::LastLedgerSequence.into(),
-        // );
+        txn_buffer.encode_u32_with_field_id(
+            current_ledger_sequence + 5,
+            FieldCode::LastLedgerSequence.into(),
+        );
         // amount in drops
-        // txn_buffer.encode_drops(self.drops, AmountType::Amount);
+        txn_buffer.encode_drops(self.drops, AmountType::Amount);
         // fee in drops (fee will be calculated at the end, but we need to reserve space for it)
-        // let fee_pos = txn_buffer.pos;
-        // txn_buffer.encode_drops(0, AmountType::Fee);
+        let fee_pos = txn_buffer.pos;
+        txn_buffer.encode_drops(0, AmountType::Fee);
         // signing public key, but it is always null
-        // txn_buffer.encode_signing_pubkey_as_null();
+        txn_buffer.encode_signing_pubkey_as_null();
         // source account
-        // txn_buffer.encode_account(&hook_account, AccountType::Account);
+        max_iter(55);
+        txn_buffer.encode_account(&hook_account, AccountType::Account);
+        max_iter(56);
         // // destination account
         // txn_buffer.encode_account(self.to_address, AccountType::Destination);
         // // transaction metadata
@@ -546,9 +550,10 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         // }
         txn_buffer.pos += EMIT_DETAILS_SIZE;
         let initialized_buffer = unsafe { MaybeUninit::array_assume_init(txn_buffer.buf) };
-        // let fee = etxn_fee_base(initialized_buffer.as_ref());
-        // txn_buffer.encode_drops_at(fee_pos, fee as u64, AmountType::Fee);
-        Ok(initialized_buffer)
+        unsafe {
+            // this way, memcpy is not called
+            Ok(initialized_buffer.as_ptr().cast::<[u8; 248]>().read_volatile())
+        }
     }
 }
 

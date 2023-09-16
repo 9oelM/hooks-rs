@@ -3,7 +3,7 @@ target = "wasm32-unknown-unknown"
 # this forces wasi to use the reactor model, which does not ship main function by default
 rustflags = [
   # "-Z","wasi-exec-model=reactor", 
-  "-C", "target-feature=-bulk-memory,+mutable-globals", "-C", "llvm-args=--disable-memop-opt", "-C", "llvm-args=--disable-memcpy-idiom", "-C", "llvm-args=--disable-memmove-idiom", "-C", "linker=gcc"]
+  "-C", "target-feature=-bulk-memory,+mutable-globals", "-C", "llvm-args=--disable-memop-opt", "-C", "llvm-args=--disable-memcpy-idiom", "-C", "llvm-args=--disable-memmove-idiom"]
 # rustflags = ''
 
 # rustflags = '-C target-feature=-bulk-memory,+mutable-globals'  -C link-arg=--import-memory
