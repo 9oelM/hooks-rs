@@ -5,7 +5,7 @@
 // allow unused var
 #![allow(unused_variables)]
 // no builtins
-use core::mem::MaybeUninit;
+use core::mem::{MaybeUninit, self};
 
 use crate::api::*;
 use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, TxnType};
@@ -485,7 +485,7 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         };
         let uninitialized_buffer: [MaybeUninit<u8>; 248] = MaybeUninit::uninit_array();
         let mut txn_buffer = TransactionBuffer {
-            buf: uninitialized_buffer,
+            buf: unsafe { uninitialized_buffer.as_ptr().cast::<[MaybeUninit<u8>; 248]>().read_volatile() },
             pos: 0,
         };
         // transaction type
@@ -520,21 +520,11 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         txn_buffer.encode_account(&hook_account, AccountType::Account);
         max_iter(56);
         // // destination account
-        // txn_buffer.encode_account(self.to_address, AccountType::Destination);
-        // // transaction metadata
+        txn_buffer.encode_account(self.to_address, AccountType::Destination);
+        // transaction metadata
         // let etxn_metadata = match etxn_details() {
         //     Err(e) => return Err(e),
-        //     Ok(details) => details,
-        // };
-        // unsafe {
-        //     let new_slice = core::slice::from_raw_parts_mut(
-        //         etxn_metadata.as_mut_ptr(), EMIT_DETAILS_SIZE);
-
-        //     core::ptr::copy_nonoverlapping(txn_buffer.buf.as_mut_ptr().add(txn_buffer.pos), new_slice.as_mut_ptr(), EMIT_DETAILS_SIZE);
-        // }
-        // match insert_etxn_details(txn_buffer.buf[txn_buffer.pos..txn_buffer.pos + EMIT_DETAILS_SIZE].as_mut_ptr() as u32) {
-        //     Err(e) => return Err(e),
-        //     Ok(_) => (),
+        //     Ok(details) => unsafe { details.as_ptr().cast::<[u8; 105]>().read_volatile() },
         // };
         // let mut i = 0;
         // while  {
@@ -542,14 +532,19 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         //     i < 105
         // } {
         //     unsafe {
-        //         txn_buffer.buf.get_unchecked_mut(txn_buffer.pos + i).as_mut_ptr().write_volatile(*etxn_metadata.get_unchecked(
-        //             i
-        //         ));
+        //         txn_buffer.buf.get_unchecked_mut(txn_buffer.pos + i)
+        //         .as_mut_ptr()
+        //         .write_volatile(*etxn_metadata.get_unchecked(i));
         //     }
         //     i += 1;
         // }
         txn_buffer.pos += EMIT_DETAILS_SIZE;
-        let initialized_buffer = unsafe { MaybeUninit::array_assume_init(txn_buffer.buf) };
+        // let initialized_buffer = unsafe { MaybeUninit::array_assume_init(txn_buffer.buf) };
+        let initialized_buffer = unsafe {
+             mem::transmute::<_, [u8; 248]>(
+                txn_buffer.buf.as_ptr().cast::<[u8; 248]>().read_volatile()
+            )
+        };
         unsafe {
             // this way, memcpy is not called
             Ok(initialized_buffer.as_ptr().cast::<[u8; 248]>().read_volatile())
