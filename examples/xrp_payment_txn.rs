@@ -16,10 +16,19 @@ pub extern "C" fn hook(_: u32) -> i64 {
     max_iter(1);
 
     let otxn_account = unsafe {
-        otxn_field::<ACC_ID_LEN>(FieldId::Account).unwrap_line_number().as_ptr().cast::<[u8; ACC_ID_LEN]>().read_volatile()
+        otxn_field::<ACC_ID_LEN>(FieldId::Account)
+            .unwrap_line_number()
+            .as_ptr()
+            .cast::<[u8; ACC_ID_LEN]>()
+            .read_volatile()
     };
     let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
-    let xrp_payment_txn = xrp_payment_txn_builder.build().unwrap_line_number();
+    let xrp_payment_txn = match xrp_payment_txn_builder.build() {
+        Ok(txn) => txn,
+        Err(_) => {
+            rollback(b"could not build xrp payment txn", -1);
+        }
+    };
     let txn_hash = emit(&xrp_payment_txn).unwrap_line_number();
 
     accept(&txn_hash, 0);

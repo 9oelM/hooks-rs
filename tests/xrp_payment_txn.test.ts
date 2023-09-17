@@ -16,7 +16,11 @@ describe("xrp_payment_txn.rs", () => {
     await client.connect();
     client.networkID = await client.getNetworkID();
     let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
+      (async () => {
+        const acc = await Faucet.waitAndGetNewAccount()
+        console.log(acc.address)
+        return acc
+      })(),
       Faucet.waitAndGetNewAccount(),
     ]);
     alice = Wallet.fromSecret(secret0);
@@ -64,7 +68,7 @@ describe("xrp_payment_txn.rs", () => {
         throw new Error(`Hook execution data is empty`);
       }
 
-      console.log(hookExecutions.executions[0].HookReturnString);
+      console.log(TestUtils.deserializeHexStringAsBigInt(hookExecutions.executions[0].HookReturnCode.toString()));
       expect(hookExecutions.executions[0].HookReturnString).toMatch(
         "accept.rs: Finished."
       );

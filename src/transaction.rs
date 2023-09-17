@@ -5,7 +5,7 @@
 // allow unused var
 #![allow(unused_variables)]
 // no builtins
-use core::mem::{MaybeUninit, self};
+use core::mem::{self, MaybeUninit};
 
 use crate::api::*;
 use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, TxnType};
@@ -75,11 +75,6 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
     /// Encodes a u32 value.
     #[inline(always)]
     pub fn encode_u32(&mut self, data: u32, field: u8) {
-        // self.buf[self.pos] = 0x20 + (field & 0x0F);
-        // self.buf[self.pos + 1] = ((data >> 24) & 0xFF) as u8;
-        // self.buf[self.pos + 2] = ((data >> 16) & 0xFF) as u8;
-        // self.buf[self.pos + 3] = ((data >> 8) & 0xFF) as u8;
-        // self.buf[self.pos + 4] = (data & 0xFF) as u8;
         unsafe {
             self.buf
                 .get_unchecked_mut(self.pos)
@@ -108,33 +103,27 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
     /// Encodes a u32 value with a field id.
     #[inline(always)]
     pub fn encode_u32_with_field_id(&mut self, data: u32, field: u8) {
-        // self.buf[self.pos] = 0x20;
-        // self.buf[self.pos + 1] = field;
-        // self.buf[self.pos + 2] = ((data >> 24) & 0xFF) as u8;
-        // self.buf[self.pos + 3] = ((data >> 16) & 0xFF) as u8;
-        // self.buf[self.pos + 4] = ((data >> 8) & 0xFF) as u8;
-        // self.buf[self.pos + 5] = (data & 0xFF) as u8;
         unsafe {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
                 .write_volatile(0x20);
             self.buf
-                .get_unchecked_mut(self.pos + 3)
-                .as_mut_ptr()
-                .write_volatile(((data >> 16) & 0xFF) as u8);
-            self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
                 .write_volatile(field);
             self.buf
-                .get_unchecked_mut(self.pos + 4)
-                .as_mut_ptr()
-                .write_volatile(((data >> 8) & 0xFF) as u8);
-            self.buf
                 .get_unchecked_mut(self.pos + 2)
                 .as_mut_ptr()
                 .write_volatile(((data >> 24) & 0xFF) as u8);
+            self.buf
+                .get_unchecked_mut(self.pos + 3)
+                .as_mut_ptr()
+                .write_volatile(((data >> 16) & 0xFF) as u8);
+            self.buf
+                .get_unchecked_mut(self.pos + 4)
+                .as_mut_ptr()
+                .write_volatile(((data >> 8) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 5)
                 .as_mut_ptr()
@@ -153,15 +142,6 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
     #[inline(always)]
     pub fn encode_drops_at(&mut self, pos: usize, drops: u64, amount_type: AmountType) {
         let amount_type: u8 = amount_type.into();
-        // self.buf[pos] = 0x60 + (amount_type & 0x0F);
-        // self.buf[pos + 1] = (0b01000000 + ((drops >> 56) & 0b00111111)) as u8;
-        // self.buf[pos + 2] = ((drops >> 48) & 0xFF) as u8;
-        // self.buf[pos + 3] = ((drops >> 40) & 0xFF) as u8;
-        // self.buf[pos + 4] = ((drops >> 32) & 0xFF) as u8;
-        // self.buf[pos + 5] = ((drops >> 24) & 0xFF) as u8;
-        // self.buf[pos + 6] = ((drops >> 16) & 0xFF) as u8;
-        // self.buf[pos + 7] = ((drops >> 8) & 0xFF) as u8;
-        // self.buf[pos + 8] = (drops & 0xFF) as u8;
         unsafe {
             self.buf
                 .get_unchecked_mut(pos)
@@ -203,11 +183,57 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
         self.pos += 9;
     }
 
+    /// Encodes an amount in drops at a specific position of the buffer that is already initialized.
+    #[inline(always)]
+    pub fn encode_drops_at_buf(
+        initialized_buf: &mut [u8; 248],
+        pos: usize,
+        drops: u64,
+        amount_type: AmountType,
+    ) {
+        let amount_type: u8 = amount_type.into();
+        unsafe {
+            initialized_buf
+                .as_mut_ptr()
+                .write_volatile(0x60 + (amount_type & 0x0F));
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 1)
+                .write_volatile((0b01000000 + ((drops >> 56) & 0b00111111)) as u8);
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 2)
+                .write_volatile(((drops >> 48) & 0xFF) as u8);
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 3)
+                .write_volatile(((drops >> 40) & 0xFF) as u8);
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 4)
+                .write_volatile(((drops >> 32) & 0xFF) as u8);
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 5)
+                .write_volatile(((drops >> 24) & 0xFF) as u8);
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 6)
+                .write_volatile(((drops >> 16) & 0xFF) as u8);
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 7)
+                .write_volatile(((drops >> 8) & 0xFF) as u8);
+            initialized_buf
+                .as_mut_ptr()
+                .add(pos + 8)
+                .write_volatile((drops & 0xFF) as u8);
+        }
+    }
+
     /// Encodes a signing public key as null.
     #[inline(always)]
     pub fn encode_signing_pubkey_as_null(&mut self) {
-        // self.buf[self.pos] = 0x73;
-        // self.buf[self.pos + 1] = 0x21;
         // leave self.buf[self.pos + 2..self.pos + 35] as 0 because they
         // are already initialized to 0 and meant to be like that to
         // represent null
@@ -372,7 +398,6 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
                 .as_mut_ptr()
                 .write_volatile(0x14);
 
-            // avoid creating loops in the resulting wasm
             self.buf
                 .get_unchecked_mut(self.pos + 2)
                 .as_mut_ptr()
@@ -476,20 +501,29 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
 
     #[inline(always)]
     fn build(self) -> Result<[u8; 248]> {
+        let _ = trace(b"1", b"1", DataRepr::AsUTF8);
         let current_ledger_sequence = ledger_seq() as u32;
+        let _ = trace(b"2", b"2", DataRepr::AsUTF8);
         let hook_account = match hook_account() {
             Err(e) => return Err(e),
-            Ok(acc) => unsafe {
-                acc.as_ptr().cast::<[u8; 20]>().read_volatile()
-            },
+            Ok(acc) => acc,
         };
+        let _ = trace(b"3", b"3", DataRepr::AsUTF8);
         let uninitialized_buffer: [MaybeUninit<u8>; 248] = MaybeUninit::uninit_array();
+        let _ = trace(b"4", b"4", DataRepr::AsUTF8);
         let mut txn_buffer = TransactionBuffer {
-            buf: unsafe { uninitialized_buffer.as_ptr().cast::<[MaybeUninit<u8>; 248]>().read_volatile() },
+            buf: unsafe {
+                uninitialized_buffer
+                    .as_ptr()
+                    .cast::<[MaybeUninit<u8>; 248]>()
+                    .read_volatile()
+            },
             pos: 0,
         };
+        let _ = trace(b"5", b"5", DataRepr::AsUTF8);
         // transaction type
         txn_buffer.encode_txn_type(Self::TXN_TYPE);
+        let _ = trace(b"6", b"6", DataRepr::AsUTF8);
         // flags
         txn_buffer.encode_u32(c::tfCANONICAL, FieldCode::Flags.into());
         // source tag
@@ -498,6 +532,7 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         txn_buffer.encode_u32(0, FieldCode::Sequence.into());
         // destination tag
         txn_buffer.encode_u32(self.dest_tag, FieldCode::DestinationTag.into());
+        let _ = trace(b"7", b"7", DataRepr::AsUTF8);
         // first ledger sequence
         txn_buffer.encode_u32_with_field_id(
             current_ledger_sequence + 1,
@@ -508,6 +543,7 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
             current_ledger_sequence + 5,
             FieldCode::LastLedgerSequence.into(),
         );
+        let _ = trace(b"8", b"8", DataRepr::AsUTF8);
         // amount in drops
         txn_buffer.encode_drops(self.drops, AmountType::Amount);
         // fee in drops (fee will be calculated at the end, but we need to reserve space for it)
@@ -519,35 +555,54 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
         txn_buffer.encode_account(&hook_account, AccountType::Account);
         // // destination account
         txn_buffer.encode_account(self.to_address, AccountType::Destination);
+        let _ = trace(b"9", b"9", DataRepr::AsUTF8);
         // transaction metadata
-        let etxn_metadata = match etxn_details() {
-            Err(e) => return Err(e),
-            Ok(details) => unsafe { details.as_ptr().cast::<[u8; 105]>().read_volatile() },
-        };
-        let mut i = 0;
-        while  {
-            max_iter(106);
-            i < 105
-        } {
-            unsafe {
-                txn_buffer.buf.get_unchecked_mut(txn_buffer.pos + i)
-                .as_mut_ptr()
-                .write_volatile(*etxn_metadata.get_unchecked(i));
-            }
-            i += 1;
-        }
+        // let insert_etxn_details_result: Result<u64> = insert_etxn_details(
+        //     unsafe { 
+        //         txn_buffer.buf[txn_buffer.pos..txn_buffer.pos + EMIT_DETAILS_SIZE]
+        //             .as_mut_ptr()
+        //             .cast::<[MaybeUninit<u8>; 248]>()
+        //             .read_volatile().as_mut_ptr() as u32
+        //     },
+        // ).into();
+        // let _ = trace(b"11", b"11", DataRepr::AsUTF8);
+        // match insert_etxn_details_result {
+        //     Err(e) => return Err(e),
+        //     Ok(_) => {}
+        // }
+        let _ = trace(b"12", b"12", DataRepr::AsUTF8);
         txn_buffer.pos += EMIT_DETAILS_SIZE;
-        // let initialized_buffer = unsafe { MaybeUninit::array_assume_init(txn_buffer.buf) };
-        let initialized_buffer = unsafe {
-            // replacement of array_assume_init since it sometimes causes memcpy to be called
+        let mut initialized_buffer = unsafe {
+            // use this instead of array_assume_init since it sometimes causes memcpy to be called
             // when the array is sufficiently large
-             mem::transmute::<_, [u8; 248]>(
-                txn_buffer.buf.as_ptr().cast::<[u8; 248]>().read_volatile()
-            )
+            txn_buffer
+                .buf
+                .as_mut_ptr()
+                .cast::<[u8; 248]>()
+                .read_volatile()
         };
+        let _ = trace(b"14", b"14", DataRepr::AsUTF8);
+        let fee =
+            etxn_fee_base(unsafe { initialized_buffer.as_ptr().cast::<&[u8]>().read_volatile() });
+            let _ = trace(b"15", b"15", DataRepr::AsUTF8);
+        TransactionBuffer::<248>::encode_drops_at_buf(
+            unsafe {
+                &mut initialized_buffer
+                    .as_mut_ptr()
+                    .cast::<[u8; 248]>()
+                    .read_volatile()
+            },
+            fee_pos,
+            fee as u64,
+            AmountType::Fee,
+        );
+        let _ = trace(b"16", b"16", DataRepr::AsUTF8);
         unsafe {
             // this way, memcpy is not called
-            Ok(initialized_buffer.as_ptr().cast::<[u8; 248]>().read_volatile())
+            Ok(initialized_buffer
+                .as_ptr()
+                .cast::<[u8; 248]>()
+                .read_volatile())
         }
     }
 }
@@ -596,17 +651,21 @@ mod tests {
 
         for txn_type in txn_types {
             let buf = [MaybeUninit::uninit(); 248];
-            let mut txn_buffer = TransactionBuffer {
-                buf,
-                pos: 0,
-            };
+            let mut txn_buffer = TransactionBuffer { buf, pos: 0 };
             txn_buffer.encode_txn_type(txn_type);
-            let txn_type: u8 = txn_type.into(); 
+            let txn_type: u8 = txn_type.into();
             unsafe {
                 assert_eq!(txn_buffer.buf[0].assume_init(), txn_type);
-                assert_eq!(txn_buffer.buf[1].assume_init(), ((txn_type as u16 >> 8) & 0xFF) as u8);
-                assert_eq!(txn_buffer.buf[2].assume_init(), (txn_type as u16 & 0xFF) as u8);
+                assert_eq!(
+                    txn_buffer.buf[1].assume_init(),
+                    ((txn_type as u16 >> 8) & 0xFF) as u8
+                );
+                assert_eq!(
+                    txn_buffer.buf[2].assume_init(),
+                    (txn_type as u16 & 0xFF) as u8
+                );
             }
+            assert_eq!(txn_buffer.pos, 3);
         }
-    }   
+    }
 }
