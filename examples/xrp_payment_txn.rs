@@ -14,6 +14,7 @@ pub extern "C" fn hook(_: u32) -> i64 {
     // Every hook needs to import guard function
     // and use it at least once
     max_iter(1);
+    etxn_reserve(1).unwrap_line_number();
 
     let otxn_account = unsafe {
         otxn_field::<ACC_ID_LEN>(FieldId::Account)
@@ -25,10 +26,11 @@ pub extern "C" fn hook(_: u32) -> i64 {
     let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
     let xrp_payment_txn = match xrp_payment_txn_builder.build() {
         Ok(txn) => txn,
-        Err(_) => {
-            rollback(b"could not build xrp payment txn", -1);
+        Err(err) => {
+            rollback(b"could not build xrp payment txn", err.into());
         }
     };
+    let _ = trace(b"txn", &xrp_payment_txn, DataRepr::AsHex);
     let txn_hash = emit(&xrp_payment_txn).unwrap_line_number();
 
     accept(&txn_hash, 0);

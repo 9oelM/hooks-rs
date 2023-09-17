@@ -501,16 +501,12 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
 
     #[inline(always)]
     fn build(self) -> Result<[u8; 248]> {
-        let _ = trace(b"1", b"1", DataRepr::AsUTF8);
         let current_ledger_sequence = ledger_seq() as u32;
-        let _ = trace(b"2", b"2", DataRepr::AsUTF8);
         let hook_account = match hook_account() {
             Err(e) => return Err(e),
             Ok(acc) => acc,
         };
-        let _ = trace(b"3", b"3", DataRepr::AsUTF8);
         let uninitialized_buffer: [MaybeUninit<u8>; 248] = MaybeUninit::uninit_array();
-        let _ = trace(b"4", b"4", DataRepr::AsUTF8);
         let mut txn_buffer = TransactionBuffer {
             buf: unsafe {
                 uninitialized_buffer
@@ -520,57 +516,64 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
             },
             pos: 0,
         };
-        let _ = trace(b"5", b"5", DataRepr::AsUTF8);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // transaction type
         txn_buffer.encode_txn_type(Self::TXN_TYPE);
-        let _ = trace(b"6", b"6", DataRepr::AsUTF8);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // flags
         txn_buffer.encode_u32(c::tfCANONICAL, FieldCode::Flags.into());
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // source tag
         txn_buffer.encode_u32(self.src_tag, FieldCode::SourceTag.into());
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // sequence
         txn_buffer.encode_u32(0, FieldCode::Sequence.into());
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // destination tag
         txn_buffer.encode_u32(self.dest_tag, FieldCode::DestinationTag.into());
-        let _ = trace(b"7", b"7", DataRepr::AsUTF8);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // first ledger sequence
         txn_buffer.encode_u32_with_field_id(
             current_ledger_sequence + 1,
             FieldCode::FirstLedgerSequence.into(),
         );
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // last ledger sequence
         txn_buffer.encode_u32_with_field_id(
             current_ledger_sequence + 5,
             FieldCode::LastLedgerSequence.into(),
         );
-        let _ = trace(b"8", b"8", DataRepr::AsUTF8);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // amount in drops
         txn_buffer.encode_drops(self.drops, AmountType::Amount);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // fee in drops (fee will be calculated at the end, but we need to reserve space for it)
         let fee_pos = txn_buffer.pos;
         txn_buffer.encode_drops(0, AmountType::Fee);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // signing public key, but it is always null
         txn_buffer.encode_signing_pubkey_as_null();
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // source account
         txn_buffer.encode_account(&hook_account, AccountType::Account);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // // destination account
         txn_buffer.encode_account(self.to_address, AccountType::Destination);
-        let _ = trace(b"9", b"9", DataRepr::AsUTF8);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // transaction metadata
-        // let insert_etxn_details_result: Result<u64> = insert_etxn_details(
-        //     unsafe { 
-        //         txn_buffer.buf[txn_buffer.pos..txn_buffer.pos + EMIT_DETAILS_SIZE]
-        //             .as_mut_ptr()
-        //             .cast::<[MaybeUninit<u8>; 248]>()
-        //             .read_volatile().as_mut_ptr() as u32
-        //     },
-        // ).into();
-        // let _ = trace(b"11", b"11", DataRepr::AsUTF8);
-        // match insert_etxn_details_result {
-        //     Err(e) => return Err(e),
-        //     Ok(_) => {}
-        // }
-        let _ = trace(b"12", b"12", DataRepr::AsUTF8);
+        let insert_etxn_details_result: Result<u64> = insert_etxn_details(
+            unsafe { 
+                txn_buffer.buf
+                .get_unchecked_mut(0)
+                .as_mut_ptr()
+                .read_volatile() as u32
+            },
+        ).into();
+        match insert_etxn_details_result {
+            Err(e) => return Err(e),
+            Ok(_) => {}
+        }
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         txn_buffer.pos += EMIT_DETAILS_SIZE;
         let mut initialized_buffer = unsafe {
             // use this instead of array_assume_init since it sometimes causes memcpy to be called
@@ -581,10 +584,10 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
                 .cast::<[u8; 248]>()
                 .read_volatile()
         };
-        let _ = trace(b"14", b"14", DataRepr::AsUTF8);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         let fee =
             etxn_fee_base(unsafe { initialized_buffer.as_ptr().cast::<&[u8]>().read_volatile() });
-            let _ = trace(b"15", b"15", DataRepr::AsUTF8);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64);
         TransactionBuffer::<248>::encode_drops_at_buf(
             unsafe {
                 &mut initialized_buffer
@@ -669,3 +672,4 @@ mod tests {
         }
     }
 }
+// 0000002280000000230000000024000000002E00000000201A0065578B201B0065578F6140000000000003E86840000000000000007321000000000000000000000000000000000000000000000000000000000000000000811455CFF8CF066FAC0D869516B2D771440228652D4B8314B47CD6BF7D39D5CD9C2F702B2D1867067446BA440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
