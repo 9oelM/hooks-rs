@@ -59,7 +59,7 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(FieldCode::TransactionType.into());
+                .write_volatile(tt.into());
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
@@ -557,4 +557,56 @@ impl From<FieldCode> for u8 {
     fn from(field_code: FieldCode) -> Self {
         field_code as u8
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn can_encode_transaction_type() {
+        use super::*;
+
+        let txn_types = [
+            TxnType::Payment,
+            TxnType::EscrowCreate,
+            TxnType::EscrowFinish,
+            TxnType::AccountSet,
+            TxnType::EscrowCancel,
+            TxnType::RegularKeySet,
+            TxnType::OfferCreate,
+            TxnType::OfferCancel,
+            TxnType::TicketCreate,
+            TxnType::TicketCancel,
+            TxnType::SignerListSet,
+            TxnType::PaychanCreate,
+            TxnType::PaychanFund,
+            TxnType::PaychanClaim,
+            TxnType::CheckCreate,
+            TxnType::CheckCash,
+            TxnType::CheckCancel,
+            TxnType::DepositPreauth,
+            TxnType::TrustSet,
+            TxnType::AccountDelete,
+            TxnType::HookSet,
+            TxnType::Amendment,
+            TxnType::Fee,
+            TxnType::UnlModify,
+        ];
+
+        for txn_type in txn_types {
+            let buf = [MaybeUninit::uninit(); 248];
+            let mut txn_buffer = TransactionBuffer {
+                buf,
+                pos: 0,
+            };
+            txn_buffer.encode_txn_type(txn_type);
+            let txn_type: u8 = txn_type.into(); 
+            unsafe {
+                assert_eq!(txn_buffer.buf[0].assume_init(), txn_type);
+                assert_eq!(txn_buffer.buf[1].assume_init(), ((txn_type as u16 >> 8) & 0xFF) as u8);
+                assert_eq!(txn_buffer.buf[2].assume_init(), (txn_type as u16 & 0xFF) as u8);
+            }
+        }
+    }   
 }

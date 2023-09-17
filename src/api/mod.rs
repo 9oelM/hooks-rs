@@ -837,3 +837,10 @@ impl From<AmountType> for u8 {
         amount_type as _
     }
 }
+
+impl From<TxnType> for u8 {
+    #[inline(always)]
+    fn from(transaction_type: TxnType) -> Self {
+        transaction_type as _
+    }
+}
