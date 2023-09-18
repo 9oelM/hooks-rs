@@ -1,5 +1,13 @@
 import { createHookPayload, iHook } from "@transia/hooks-toolkit";
-import { Client, SetHook, Transaction, Wallet, encode } from "@transia/xrpl";
+import {
+  Client,
+  SetHook,
+  Transaction,
+  TxResponse,
+  Wallet,
+  XrplError,
+  encode,
+} from "@transia/xrpl";
 import { getFeeEstimateXrp } from "@transia/xrpl/dist/npm/sugar";
 import { exec as execWithCallback } from "child_process";
 import { readFile as readFileWithCallback } from "fs";
@@ -203,5 +211,40 @@ export class TestUtils {
     } else {
       return maybeSignedNumber;
     }
+  }
+
+  static async waitForMaybeNonExistentTx(
+    client: Client,
+    txHash: string
+  ): Promise<boolean> {
+    let validated = false;
+    let tries = 0;
+    while (!validated && tries < 20) {
+      try {
+        const txResponse: TxResponse | boolean = await client.request({
+          command: "tx",
+          transaction: txHash,
+        });
+        if (typeof txResponse !== `boolean` && txResponse?.result?.validated) {
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        tries++;
+      } catch (error) {
+        // error is of an unknown type and hence we assert type to extract the value we need.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-member-access -- ^
+        const message = ((error as XrplError)?.data as { error: string })
+          ?.error as string;
+        if (message === "txnNotFound") {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          tries++;
+          continue;
+        }
+
+        throw new Error(`Failed to get transaction: ${JSON.stringify(error)}`);
+      }
+    }
+
+    return false;
   }
 }

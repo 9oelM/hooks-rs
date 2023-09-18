@@ -1,26 +1,17 @@
-// allow dead code
-#![allow(dead_code)]
-// allow dead imports
-#![allow(unused_imports)]
-// allow unused var
-#![allow(unused_variables)]
-// no builtins
-use core::mem::{self, MaybeUninit};
+use core::mem::{MaybeUninit};
 
 use crate::api::*;
 use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, TxnType};
 
-// ED202E000000013D00000000000000015B316CD7252B2F6A808CFBC98D9DD7C687316E850D7608647173A8793CD9553B2D5CB2D9188C36F2EEE397BCF9DAE609966A2F79C69275F57D7BD22DAB20ED037C765D2702C5E3E248D5DDBD1399D6AF79DB23FF37599BEA01AF2300985DA7BE52C0858A14090A708604BC3BB4459F01E50AC0023FE682D2ADE1
-
 /// Builds a transaction to send XRP.
 /// Equivalent to PREPARE_PAYMENT_SIMPLE in `macro.h` in
 /// official hooks API.
-/// 
+///
 /// When successfully built, the transaction buffer will be 270 bytes long
 /// that look like:
-/// 
+///
 /// ```
-/// 000000 // txn type (3 bytes)
+/// 120000 // txn type (3 bytes)
 /// 2280000000 // flags (5 bytes)
 /// 2300000000 // source tag (5 bytes)
 /// 2400000000 // sequence (5 bytes)
@@ -33,8 +24,7 @@ use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, Txn
 /// 8114090A708604BC3BB4459F01E50AC0023FE682D2AD // source account (22 bytes)
 /// 8314A8B7F78C0AE9FD42183EE45170D05F92F7F74239 // destination account (22 bytes)
 /// ED202E000000013D00000000000000015B316CD7252B2F6A808CFBC98D9DD7C687316E850D7608647173A8793CD9553B2D5CB2D9188C36F2EEE397BCF9DAE609966A2F79C69275F57D7BD22DAB20ED037C765D2702C5E3E248D5DDBD1399D6AF79DB23FF37599BEA01AF2300985DA7BE52C0858A14090A708604BC3BB4459F01E50AC0023FE682D2ADE1 // txn details (138 bytes)
-/// ``` 
-/// 
+/// ```
 pub struct XrpPaymentBuilder<'a> {
     drops: u64,
     to_address: &'a [u8; 20],
@@ -73,6 +63,8 @@ pub struct TransactionBuffer<const TXN_LEN: usize> {
 // of declaring it as an associated constant, but specifying
 // constant has the return type in `build` method is unstable
 // in Rust nightly right now. See `generic_const_exprs` feature.
+//
+// TODO: write bytes at once as u64 or u32 instead of byte by byte
 impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
     /// Encodes a transaction type.
     #[inline(always)]
@@ -81,7 +73,7 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(0x12);
+                .write_volatile(FieldCode::TransactionType.into());
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
@@ -575,7 +567,7 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
         txn_buffer.encode_drops(0, AmountType::Fee); // pos = 53
 
         // signing public key, but it is always null
-        txn_buffer.encode_signing_pubkey_as_null();  // pos = 88
+        txn_buffer.encode_signing_pubkey_as_null(); // pos = 88
 
         // source account
         txn_buffer.encode_account(&hook_account, AccountType::Account); // pos = 110
@@ -585,13 +577,9 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
 
         // transaction metadata
         let insert_etxn_details_result: Result<u64> = insert_etxn_details(
-            unsafe { 
-                txn_buffer.buf
-                .as_mut_ptr()
-                .add(txn_buffer.pos) as u32
-            },
-            138
-        ).into();
+            unsafe { txn_buffer.buf.as_mut_ptr().add(txn_buffer.pos) as u32 },
+            138,
+        );
         match insert_etxn_details_result {
             Err(e) => return Err(e),
             Ok(_) => {}
@@ -608,18 +596,11 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
                 .read_volatile()
         };
 
-        let _ = trace(b"before", &initialized_buffer, DataRepr::AsHex);
-
         // encode fee because we have the full transaction now
-        let fee =
-            match etxn_fee_base(
-                &initialized_buffer,
-            ) {
-                Err(e) => return Err(e),
-                Ok(fee) => fee,
-            };
-
-        let _ = trace_num(b"fee", fee as i64);
+        let fee = match etxn_fee_base(&initialized_buffer) {
+            Err(e) => return Err(e),
+            Ok(fee) => fee,
+        };
 
         TransactionBuffer::<270>::encode_drops_at_buf(
             &mut initialized_buffer,
@@ -627,8 +608,6 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
             fee,
             AmountType::Fee,
         );
-
-        let _ = trace(b"after", &initialized_buffer, DataRepr::AsHex);
 
         unsafe {
             // this way, memcpy is not called
@@ -651,7 +630,7 @@ impl From<FieldCode> for u8 {
 mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    use crate::{TransactionBuffer, AmountType};
+    use crate::{AmountType, TransactionBuffer};
 
     #[wasm_bindgen_test]
     fn can_encode_transaction_type() {
@@ -710,9 +689,23 @@ mod tests {
         TransactionBuffer::<270>::encode_drops_at_buf(
             &mut initialized_buffer,
             44,
-            12 as u64,
+            12_u64,
             AmountType::Fee,
         );
-        assert_eq!(initialized_buffer, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 104, 64, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(
+            initialized_buffer,
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 104, 64, 0, 0, 0, 0, 0, 0, 12, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ]
+        );
     }
 }

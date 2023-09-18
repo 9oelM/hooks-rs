@@ -37,5 +37,7 @@ pub extern "C" fn hook(_: u32) -> i64 {
         }
     };
 
+    let _ = trace(b"emit", &txn_hash, DataRepr::AsHex);
+
     accept(&txn_hash, 0);
 }

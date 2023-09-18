@@ -14,7 +14,11 @@
     unreachable_pub
 )]
 #![doc(test(attr(deny(warnings))))]
-#![feature(maybe_uninit_uninit_array, maybe_uninit_array_assume_init, pointer_byte_offsets)]
+#![feature(
+    maybe_uninit_uninit_array,
+    maybe_uninit_array_assume_init,
+    pointer_byte_offsets
+)]
 
 #[allow(missing_docs)]
 pub mod c {
