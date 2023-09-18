@@ -81,7 +81,7 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(tt.into());
+                .write_volatile(0x12);
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
@@ -217,6 +217,7 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
         unsafe {
             initialized_buf
                 .as_mut_ptr()
+                .add(pos)
                 .write_volatile(0x60 + (amount_type & 0x0F));
             initialized_buf
                 .as_mut_ptr()
@@ -621,14 +622,9 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
         let _ = trace_num(b"fee", fee as i64);
 
         TransactionBuffer::<270>::encode_drops_at_buf(
-            unsafe {
-                &mut initialized_buffer
-                    .as_mut_ptr()
-                    .cast::<[u8; 270]>()
-                    .read_volatile()
-            },
+            &mut initialized_buffer,
             fee_pos,
-            fee as u64,
+            fee,
             AmountType::Fee,
         );
 
@@ -654,6 +650,8 @@ impl From<FieldCode> for u8 {
 #[cfg(test)]
 mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
+
+    use crate::{TransactionBuffer, AmountType};
 
     #[wasm_bindgen_test]
     fn can_encode_transaction_type() {
@@ -692,7 +690,7 @@ mod tests {
             txn_buffer.encode_txn_type(txn_type);
             let txn_type: u8 = txn_type.into();
             unsafe {
-                assert_eq!(txn_buffer.buf[0].assume_init(), txn_type);
+                assert_eq!(txn_buffer.buf[0].assume_init(), 0x12);
                 assert_eq!(
                     txn_buffer.buf[1].assume_init(),
                     ((txn_type as u16 >> 8) & 0xFF) as u8
@@ -704,5 +702,17 @@ mod tests {
             }
             assert_eq!(txn_buffer.pos, 3);
         }
+    }
+
+    #[wasm_bindgen_test]
+    fn can_encode_drops_at_buf() {
+        let mut initialized_buffer = [0; 270];
+        TransactionBuffer::<270>::encode_drops_at_buf(
+            &mut initialized_buffer,
+            44,
+            12 as u64,
+            AmountType::Fee,
+        );
+        assert_eq!(initialized_buffer, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 104, 64, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
 }
