@@ -3,3 +3,4 @@ Cargo.lock
 .directory
 bindings.rs
 node_modules
+.vscode

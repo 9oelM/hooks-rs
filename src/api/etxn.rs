@@ -12,21 +12,25 @@ pub fn etxn_burden() -> i64 {
 
 /// Produce an sfEmitDetails suitable for a soon-to-be emitted transaction
 #[inline(always)]
-pub fn etxn_details() -> Result<[u8; EMIT_DETAILS_SIZE]> {
+pub fn etxn_details<const EMIT_DETAILS_LEN: usize>() -> Result<[u8; EMIT_DETAILS_LEN]> {
     init_buffer_mut(|buffer_mut_ptr: *mut MaybeUninit<u8>| {
         let result: Result<u64> =
-            unsafe { c::etxn_details(buffer_mut_ptr as u32, EMIT_DETAILS_SIZE as u32).into() };
+            unsafe { c::etxn_details(buffer_mut_ptr as u32, EMIT_DETAILS_LEN as u32).into() };
 
         result
     })
 }
 
+/// Produce an sfEmitDetails suitable for a soon-to-be emitted transaction
+#[inline(always)]
+pub fn insert_etxn_details(txn_buffer_mut_ptr: u32, emit_details_len: u32) -> Result<u64> {
+    unsafe { c::etxn_details(txn_buffer_mut_ptr, emit_details_len).into() }
+}
+
 /// Estimate the required fee for a txn to be emitted successfully
 #[inline(always)]
-pub fn etxn_fee_base(tx_blob: &mut [u8]) -> Result<XFL> {
-    XFL::from_verified_i64(unsafe {
-        c::etxn_fee_base(tx_blob.as_mut_ptr() as u32, tx_blob.len() as u32)
-    })
+pub fn etxn_fee_base(tx_blob: &[u8]) -> Result<u64> {
+    unsafe { c::etxn_fee_base(tx_blob.as_ptr() as u32, tx_blob.len() as u32).into() }
 }
 
 /// Generate a 32 byte nonce for use in an emitted transaction

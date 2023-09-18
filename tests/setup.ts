@@ -1,5 +1,13 @@
 import { createHookPayload, iHook } from "@transia/hooks-toolkit";
-import { Client, SetHook, Transaction, Wallet, encode } from "@transia/xrpl";
+import {
+  Client,
+  SetHook,
+  Transaction,
+  TxResponse,
+  Wallet,
+  XrplError,
+  encode,
+} from "@transia/xrpl";
 import { getFeeEstimateXrp } from "@transia/xrpl/dist/npm/sugar";
 import { exec as execWithCallback } from "child_process";
 import { readFile as readFileWithCallback } from "fs";
@@ -79,6 +87,7 @@ export class TestUtils {
       `release`,
       `examples`
     );
+    const debugDir = path.resolve(__dirname, `..`, `target`);
     const wasmInFile = path.resolve(wasmDir, `${hookName}.wasm`);
     const wasmOutFlattened = path.resolve(
       wasmDir,
@@ -91,8 +100,35 @@ export class TestUtils {
       `wasm-opt ${wasmInFile} --flatten --rereloop -Oz -Oz -o ${wasmOutFlattened}`
     );
     const wasmOutCleaned = path.resolve(wasmDir, `${hookName}-cleaned.wasm`);
-    await exec(`hook-cleaner ${wasmOutFlattened} ${wasmOutCleaned}`);
-    await exec(`guard_checker ${wasmOutCleaned}`);
+    const hookCleanerOut = await exec(
+      `hook-cleaner ${wasmOutFlattened} ${wasmOutCleaned}`
+    );
+    console.log(JSON.stringify(hookCleanerOut, null, 2));
+    await Promise.all([
+      exec(
+        `wasm2wat ${wasmInFile} -o ${path.resolve(debugDir, `${hookName}.wat`)}`
+      ),
+      exec(
+        `wasm2wat ${wasmOutCleaned} -o ${path.resolve(
+          debugDir,
+          `${hookName}-cleaned.wat`
+        )}`
+      ),
+      exec(
+        `wasm2wat ${wasmOutFlattened} -o ${path.resolve(
+          debugDir,
+          `${hookName}-flattened.wat`
+        )}`
+      ),
+    ]);
+    try {
+      const guardCheckerOut = await exec(`guard_checker ${wasmOutCleaned}`);
+      console.log(JSON.stringify(guardCheckerOut, null, 2));
+    } catch (e) {
+      console.error(e);
+
+      throw new Error(`Guard checker failed`);
+    }
     const wasm = await readFile(wasmOutCleaned);
     const wasmHex = wasm.toString(`hex`).toUpperCase();
     hook.CreateCode = wasmHex;
@@ -175,5 +211,40 @@ export class TestUtils {
     } else {
       return maybeSignedNumber;
     }
+  }
+
+  static async waitForMaybeNonExistentTx(
+    client: Client,
+    txHash: string
+  ): Promise<boolean> {
+    let validated = false;
+    let tries = 0;
+    while (!validated && tries < 20) {
+      try {
+        const txResponse: TxResponse | boolean = await client.request({
+          command: "tx",
+          transaction: txHash,
+        });
+        if (typeof txResponse !== `boolean` && txResponse?.result?.validated) {
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        tries++;
+      } catch (error) {
+        // error is of an unknown type and hence we assert type to extract the value we need.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions,@typescript-eslint/no-unsafe-member-access -- ^
+        const message = ((error as XrplError)?.data as { error: string })
+          ?.error as string;
+        if (message === "txnNotFound") {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          tries++;
+          continue;
+        }
+
+        throw new Error(`Failed to get transaction: ${JSON.stringify(error)}`);
+      }
+    }
+
+    return false;
   }
 }

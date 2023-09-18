@@ -16,7 +16,10 @@ where
             }
         }
 
-        MaybeUninit::array_assume_init(uninitialized_buffer)
+        uninitialized_buffer
+            .as_ptr()
+            .cast::<[u8; BUFFER_LEN]>()
+            .read_volatile()
     };
 
     Ok(buffer)

@@ -1,14 +1,6 @@
 //! XRPL Hooks API
 //!
 //! This crate allows you to write XRPL hooks in Rust.
-//!
-//! Before you begin, it is highly recommended that you read
-//! the [official docs](https://xrpl-hooks.readme.io/) carefully.
-//!
-//! # Examples
-//!
-//! For a quick start and to view examples,
-//! use the [hook template](https://github.com/otov4its/xrpl-hook-template/)
 
 #![no_std]
 #![deny(
@@ -21,7 +13,11 @@
     unreachable_pub
 )]
 #![doc(test(attr(deny(warnings))))]
-#![feature(maybe_uninit_uninit_array, maybe_uninit_array_assume_init)]
+#![feature(
+    maybe_uninit_uninit_array,
+    maybe_uninit_array_assume_init,
+    pointer_byte_offsets
+)]
 
 #[allow(missing_docs)]
 pub mod c {
@@ -38,8 +34,11 @@ pub mod api;
 /// A few utilities
 pub mod helpers;
 
+/// Transaction builders
+pub mod transaction;
+
 // Prelude
-pub use {api::*, helpers::*};
+pub use {api::*, helpers::*, transaction::*};
 
 #[cfg(not(test))]
 use core::panic::PanicInfo;
