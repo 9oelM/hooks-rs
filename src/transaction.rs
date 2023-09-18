@@ -186,7 +186,7 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
     /// Encodes an amount in drops at a specific position of the buffer that is already initialized.
     #[inline(always)]
     pub fn encode_drops_at_buf(
-        initialized_buf: &mut [u8; 248],
+        initialized_buf: &mut [u8; 270],
         pos: usize,
         drops: u64,
         amount_type: AmountType,
@@ -496,103 +496,108 @@ impl<'a> XrpPaymentBuilder<'a> {
     }
 }
 
-impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
+impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
     const TXN_TYPE: TxnType = TxnType::Payment;
 
     #[inline(always)]
-    fn build(self) -> Result<[u8; 248]> {
+    fn build(self) -> Result<[u8; 270]> {
         let current_ledger_sequence = ledger_seq() as u32;
         let hook_account = match hook_account() {
             Err(e) => return Err(e),
             Ok(acc) => acc,
         };
-        let uninitialized_buffer: [MaybeUninit<u8>; 248] = MaybeUninit::uninit_array();
+        let uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
         let mut txn_buffer = TransactionBuffer {
             buf: unsafe {
                 uninitialized_buffer
                     .as_ptr()
-                    .cast::<[MaybeUninit<u8>; 248]>()
+                    .cast::<[MaybeUninit<u8>; 270]>()
                     .read_volatile()
             },
             pos: 0,
         };
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+        let _ = trace_num(b"pos", txn_buffer.pos as i64); 
         // transaction type
-        txn_buffer.encode_txn_type(Self::TXN_TYPE);
+        txn_buffer.encode_txn_type(Self::TXN_TYPE); // pos = 3
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // flags
-        txn_buffer.encode_u32(c::tfCANONICAL, FieldCode::Flags.into());
+        txn_buffer.encode_u32(c::tfCANONICAL, FieldCode::Flags.into()); // pos = 8
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // source tag
-        txn_buffer.encode_u32(self.src_tag, FieldCode::SourceTag.into());
+        txn_buffer.encode_u32(self.src_tag, FieldCode::SourceTag.into()); // pos = 13
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // sequence
-        txn_buffer.encode_u32(0, FieldCode::Sequence.into());
+        txn_buffer.encode_u32(0, FieldCode::Sequence.into()); // pos = 18
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // destination tag
-        txn_buffer.encode_u32(self.dest_tag, FieldCode::DestinationTag.into());
+        txn_buffer.encode_u32(self.dest_tag, FieldCode::DestinationTag.into()); // pos = 23
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // first ledger sequence
         txn_buffer.encode_u32_with_field_id(
             current_ledger_sequence + 1,
             FieldCode::FirstLedgerSequence.into(),
-        );
+        ); // pos = 29
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // last ledger sequence
         txn_buffer.encode_u32_with_field_id(
             current_ledger_sequence + 5,
             FieldCode::LastLedgerSequence.into(),
-        );
+        ); // pos = 35
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // amount in drops
-        txn_buffer.encode_drops(self.drops, AmountType::Amount);
+        txn_buffer.encode_drops(self.drops, AmountType::Amount); // pos = 44
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // fee in drops (fee will be calculated at the end, but we need to reserve space for it)
         let fee_pos = txn_buffer.pos;
-        txn_buffer.encode_drops(0, AmountType::Fee);
+        txn_buffer.encode_drops(0, AmountType::Fee); // pos = 53
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // signing public key, but it is always null
-        txn_buffer.encode_signing_pubkey_as_null();
+        txn_buffer.encode_signing_pubkey_as_null();  // pos = 88
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // source account
-        txn_buffer.encode_account(&hook_account, AccountType::Account);
+        txn_buffer.encode_account(&hook_account, AccountType::Account); // pos = 110
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // // destination account
-        txn_buffer.encode_account(self.to_address, AccountType::Destination);
+        txn_buffer.encode_account(self.to_address, AccountType::Destination); // pos = 132
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         // transaction metadata
+        let emit_details = match etxn_details::<138>() {
+            Err(e) => return Err(e),
+            Ok(details) => details,
+        };
+        let _ = trace(b"emit_details", &emit_details, DataRepr::AsHex);
         let insert_etxn_details_result: Result<u64> = insert_etxn_details(
             unsafe { 
                 txn_buffer.buf
-                .get_unchecked_mut(0)
                 .as_mut_ptr()
-                .read_volatile() as u32
+                .add(txn_buffer.pos) as u32
             },
+            138
         ).into();
         match insert_etxn_details_result {
             Err(e) => return Err(e),
             Ok(_) => {}
         }
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
-        txn_buffer.pos += EMIT_DETAILS_SIZE;
+        txn_buffer.pos += 138;
         let mut initialized_buffer = unsafe {
             // use this instead of array_assume_init since it sometimes causes memcpy to be called
             // when the array is sufficiently large
             txn_buffer
                 .buf
                 .as_mut_ptr()
-                .cast::<[u8; 248]>()
+                .cast::<[u8; 270]>()
                 .read_volatile()
         };
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
         let fee =
             etxn_fee_base(unsafe { initialized_buffer.as_ptr().cast::<&[u8]>().read_volatile() });
         let _ = trace_num(b"pos", txn_buffer.pos as i64);
-        TransactionBuffer::<248>::encode_drops_at_buf(
+        TransactionBuffer::<270>::encode_drops_at_buf(
             unsafe {
                 &mut initialized_buffer
                     .as_mut_ptr()
-                    .cast::<[u8; 248]>()
+                    .cast::<[u8; 270]>()
                     .read_volatile()
             },
             fee_pos,
@@ -604,7 +609,7 @@ impl<'a> TransactionBuilder<248> for XrpPaymentBuilder<'a> {
             // this way, memcpy is not called
             Ok(initialized_buffer
                 .as_ptr()
-                .cast::<[u8; 248]>()
+                .cast::<[u8; 270]>()
                 .read_volatile())
         }
     }
@@ -653,7 +658,7 @@ mod tests {
         ];
 
         for txn_type in txn_types {
-            let buf = [MaybeUninit::uninit(); 248];
+            let buf = [MaybeUninit::uninit(); 270];
             let mut txn_buffer = TransactionBuffer { buf, pos: 0 };
             txn_buffer.encode_txn_type(txn_type);
             let txn_type: u8 = txn_type.into();

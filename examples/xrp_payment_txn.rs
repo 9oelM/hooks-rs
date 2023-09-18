@@ -31,7 +31,12 @@ pub extern "C" fn hook(_: u32) -> i64 {
         }
     };
     let _ = trace(b"txn", &xrp_payment_txn, DataRepr::AsHex);
-    let txn_hash = emit(&xrp_payment_txn).unwrap_line_number();
+    let txn_hash = match emit(&xrp_payment_txn) {
+        Ok(hash) => hash,
+        Err(err) => {
+            rollback(b"could not emit xrp payment txn", err.into());
+        }
+    };
 
     accept(&txn_hash, 0);
 }
