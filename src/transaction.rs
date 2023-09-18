@@ -1,4 +1,4 @@
-use core::mem::{MaybeUninit};
+use core::mem::MaybeUninit;
 
 use crate::api::*;
 use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, TxnType};

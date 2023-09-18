@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-#![no_builtins]
 
 use hooks_rs::*;
 
@@ -29,15 +28,12 @@ pub extern "C" fn hook(_: u32) -> i64 {
             rollback(b"could not build xrp payment txn", err.into());
         }
     };
-    let _ = trace(b"txn", &xrp_payment_txn, DataRepr::AsHex);
     let txn_hash = match emit(&xrp_payment_txn) {
         Ok(hash) => hash,
         Err(err) => {
             rollback(b"could not emit xrp payment txn", err.into());
         }
     };
-
-    let _ = trace(b"emit", &txn_hash, DataRepr::AsHex);
 
     accept(&txn_hash, 0);
 }

@@ -3,7 +3,6 @@
 //! This crate allows you to write XRPL hooks in Rust.
 
 #![no_std]
-#![no_builtins]
 #![deny(
     warnings,
     clippy::all,

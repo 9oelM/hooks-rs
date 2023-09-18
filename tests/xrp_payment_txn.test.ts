@@ -16,11 +16,7 @@ describe("xrp_payment_txn.rs", () => {
     await client.connect();
     client.networkID = await client.getNetworkID();
     let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
-      (async () => {
-        const acc = await Faucet.waitAndGetNewAccount();
-        console.log(acc.address);
-        return acc;
-      })(),
+      Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);
     alice = Wallet.fromSecret(secret0);
