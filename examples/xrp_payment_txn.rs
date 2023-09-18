@@ -16,12 +16,11 @@ pub extern "C" fn hook(_: u32) -> i64 {
     max_iter(1);
     etxn_reserve(1).unwrap_line_number();
 
-    let otxn_account = unsafe {
-        otxn_field::<ACC_ID_LEN>(FieldId::Account)
-            .unwrap_line_number()
-            .as_ptr()
-            .cast::<[u8; ACC_ID_LEN]>()
-            .read_volatile()
+    let otxn_account = match otxn_field::<ACC_ID_LEN>(FieldId::Account) {
+        Ok(account) => account,
+        Err(err) => {
+            rollback(b"could not get otxn account", err.into());
+        }
     };
     let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
     let xrp_payment_txn = match xrp_payment_txn_builder.build() {

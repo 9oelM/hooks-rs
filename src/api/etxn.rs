@@ -29,8 +29,8 @@ pub fn insert_etxn_details(txn_buffer_mut_ptr: u32, emit_details_len: u32) -> Re
 
 /// Estimate the required fee for a txn to be emitted successfully
 #[inline(always)]
-pub fn etxn_fee_base(tx_blob: &[u8]) -> i64 {
-    unsafe { c::etxn_fee_base(tx_blob.as_ptr() as u32, tx_blob.len() as u32) }
+pub fn etxn_fee_base(tx_blob: &[u8]) -> Result<u64> {
+    unsafe { c::etxn_fee_base(tx_blob.as_ptr() as u32, tx_blob.len() as u32).into() }
 }
 
 /// Generate a 32 byte nonce for use in an emitted transaction

@@ -10,9 +10,31 @@ use core::mem::{self, MaybeUninit};
 use crate::api::*;
 use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, TxnType};
 
+// ED202E000000013D00000000000000015B316CD7252B2F6A808CFBC98D9DD7C687316E850D7608647173A8793CD9553B2D5CB2D9188C36F2EEE397BCF9DAE609966A2F79C69275F57D7BD22DAB20ED037C765D2702C5E3E248D5DDBD1399D6AF79DB23FF37599BEA01AF2300985DA7BE52C0858A14090A708604BC3BB4459F01E50AC0023FE682D2ADE1
+
 /// Builds a transaction to send XRP.
 /// Equivalent to PREPARE_PAYMENT_SIMPLE in `macro.h` in
 /// official hooks API.
+/// 
+/// When successfully built, the transaction buffer will be 270 bytes long
+/// that look like:
+/// 
+/// ```
+/// 000000 // txn type (3 bytes)
+/// 2280000000 // flags (5 bytes)
+/// 2300000000 // source tag (5 bytes)
+/// 2400000000 // sequence (5 bytes)
+/// 2E00000000 // destination tag (5 bytes)
+/// 201A0065D303 // first ledger sequence (6 bytes)
+/// 201B0065D307 // last ledger sequence (6 bytes)
+/// 6140000000000003E8 // amount to send (9 bytes)
+/// 684000000000000000 // fee (9 bytes)
+/// 7321000000000000000000000000000000000000000000000000000000000000000000 // pub key, signed as null (35 bytes)
+/// 8114090A708604BC3BB4459F01E50AC0023FE682D2AD // source account (22 bytes)
+/// 8314A8B7F78C0AE9FD42183EE45170D05F92F7F74239 // destination account (22 bytes)
+/// ED202E000000013D00000000000000015B316CD7252B2F6A808CFBC98D9DD7C687316E850D7608647173A8793CD9553B2D5CB2D9188C36F2EEE397BCF9DAE609966A2F79C69275F57D7BD22DAB20ED037C765D2702C5E3E248D5DDBD1399D6AF79DB23FF37599BEA01AF2300985DA7BE52C0858A14090A708604BC3BB4459F01E50AC0023FE682D2ADE1 // txn details (138 bytes)
+/// ``` 
+/// 
 pub struct XrpPaymentBuilder<'a> {
     drops: u64,
     to_address: &'a [u8; 20],
@@ -516,56 +538,51 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
             },
             pos: 0,
         };
-        let _ = trace_num(b"pos", txn_buffer.pos as i64); 
+
         // transaction type
         txn_buffer.encode_txn_type(Self::TXN_TYPE); // pos = 3
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // flags
         txn_buffer.encode_u32(c::tfCANONICAL, FieldCode::Flags.into()); // pos = 8
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // source tag
         txn_buffer.encode_u32(self.src_tag, FieldCode::SourceTag.into()); // pos = 13
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // sequence
         txn_buffer.encode_u32(0, FieldCode::Sequence.into()); // pos = 18
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // destination tag
         txn_buffer.encode_u32(self.dest_tag, FieldCode::DestinationTag.into()); // pos = 23
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // first ledger sequence
         txn_buffer.encode_u32_with_field_id(
             current_ledger_sequence + 1,
             FieldCode::FirstLedgerSequence.into(),
         ); // pos = 29
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // last ledger sequence
         txn_buffer.encode_u32_with_field_id(
             current_ledger_sequence + 5,
             FieldCode::LastLedgerSequence.into(),
         ); // pos = 35
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // amount in drops
         txn_buffer.encode_drops(self.drops, AmountType::Amount); // pos = 44
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // fee in drops (fee will be calculated at the end, but we need to reserve space for it)
         let fee_pos = txn_buffer.pos;
         txn_buffer.encode_drops(0, AmountType::Fee); // pos = 53
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // signing public key, but it is always null
         txn_buffer.encode_signing_pubkey_as_null();  // pos = 88
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // source account
         txn_buffer.encode_account(&hook_account, AccountType::Account); // pos = 110
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
-        // // destination account
+
+        // destination account
         txn_buffer.encode_account(self.to_address, AccountType::Destination); // pos = 132
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
         // transaction metadata
-        let emit_details = match etxn_details::<138>() {
-            Err(e) => return Err(e),
-            Ok(details) => details,
-        };
-        let _ = trace(b"emit_details", &emit_details, DataRepr::AsHex);
         let insert_etxn_details_result: Result<u64> = insert_etxn_details(
             unsafe { 
                 txn_buffer.buf
@@ -578,8 +595,8 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
             Err(e) => return Err(e),
             Ok(_) => {}
         }
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
-        txn_buffer.pos += 138;
+        txn_buffer.pos += 138; // pos = 270
+
         let mut initialized_buffer = unsafe {
             // use this instead of array_assume_init since it sometimes causes memcpy to be called
             // when the array is sufficiently large
@@ -589,10 +606,20 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
                 .cast::<[u8; 270]>()
                 .read_volatile()
         };
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+
+        let _ = trace(b"before", &initialized_buffer, DataRepr::AsHex);
+
+        // encode fee because we have the full transaction now
         let fee =
-            etxn_fee_base(unsafe { initialized_buffer.as_ptr().cast::<&[u8]>().read_volatile() });
-        let _ = trace_num(b"pos", txn_buffer.pos as i64);
+            match etxn_fee_base(
+                &initialized_buffer,
+            ) {
+                Err(e) => return Err(e),
+                Ok(fee) => fee,
+            };
+
+        let _ = trace_num(b"fee", fee as i64);
+
         TransactionBuffer::<270>::encode_drops_at_buf(
             unsafe {
                 &mut initialized_buffer
@@ -604,7 +631,9 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
             fee as u64,
             AmountType::Fee,
         );
-        let _ = trace(b"16", b"16", DataRepr::AsUTF8);
+
+        let _ = trace(b"after", &initialized_buffer, DataRepr::AsHex);
+
         unsafe {
             // this way, memcpy is not called
             Ok(initialized_buffer
@@ -677,4 +706,3 @@ mod tests {
         }
     }
 }
-// 0000002280000000230000000024000000002E00000000201A0065578B201B0065578F6140000000000003E86840000000000000007321000000000000000000000000000000000000000000000000000000000000000000811455CFF8CF066FAC0D869516B2D771440228652D4B8314B47CD6BF7D39D5CD9C2F702B2D1867067446BA440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
