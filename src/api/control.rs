@@ -65,6 +65,24 @@ pub fn max_iter(max_iter: u32) {
 }
 
 /// Accept the originating transaction and commit any changes the hook made
+///
+/// # Example
+///
+/// You can use a byte string to return a message
+/// ```
+/// accept(b"accept.rs: Finished.", line!().into());
+/// ```
+///
+/// You can also return any forms of bytes, like:
+/// ```
+/// let txn_hash = match emit(&xrp_payment_txn) {
+///     Ok(hash) => hash,
+///     Err(err) => {
+///         rollback(b"could not emit xrp payment txn", err.into());
+///     }
+/// };
+/// accept(&txn_hash, 0);
+/// ```
 #[inline(always)]
 pub fn accept(msg: &[u8], error_code: i64) -> ! {
     unsafe {
@@ -74,6 +92,11 @@ pub fn accept(msg: &[u8], error_code: i64) -> ! {
 }
 
 /// Reject the originating transaction and discard any changes the hook made
+///
+/// # Example
+/// ```
+/// rollback(b"encountered a problem", -1)
+/// ```
 #[inline(always)]
 pub fn rollback(msg: &[u8], error_code: i64) -> ! {
     unsafe {

@@ -7,6 +7,29 @@ use super::*;
 /// Retrieve the data pointed to by a Hook State key and write it to an output buffer
 /// The keys are always 32 bytes (unsigned 256 bit integer) and the values are variable
 /// length with a maximum size determined by validator voting, at time of writing 128 bytes.
+///
+/// # Example
+/// ```
+/// #[inline(always)]
+/// fn get_count(key: &[u8; ACC_ID_LEN]) -> u64 {
+///     match state::<STATE_VALUE_LEN>(key.as_ref()) {
+///         Ok(data) => u64::from_be_bytes(data),
+///         Err(_err) => {
+///             rollback(b"could not get count state", -1);
+///         }
+///     }
+/// }
+///
+/// #[inline(always)]
+/// fn set_count(count: u64, key: &[u8; ACC_ID_LEN]) {
+///     match state_set(count.to_be_bytes().as_ref(), key.as_ref()) {
+///         Ok(_) => {}
+///         Err(_) => {
+///             rollback(b"could not set state", -1);
+///         }
+///     };
+/// }
+/// ```
 #[inline(always)]
 pub fn state<const STATE_VALUE_LEN: usize>(key: &[u8]) -> Result<[u8; STATE_VALUE_LEN]>
 where
@@ -29,6 +52,30 @@ where
 }
 
 /// Set the Hook State for a given key and value
+///
+/// # Example
+/// ```
+/// #[inline(always)]
+/// fn get_count(key: &[u8; ACC_ID_LEN]) -> u64 {
+///     match state::<STATE_VALUE_LEN>(key.as_ref()) {
+///         Ok(data) => u64::from_be_bytes(data),
+///         Err(_err) => {
+///             rollback(b"could not get count state", -1);
+///         }
+///     }
+/// }
+///
+/// #[inline(always)]
+/// fn set_count(count: u64, key: &[u8; ACC_ID_LEN]) {
+///     match state_set(count.to_be_bytes().as_ref(), key.as_ref()) {
+///         Ok(_) => {}
+///         Err(_) => {
+///             rollback(b"could not set state", -1);
+///         }
+///     };
+/// }
+/// ```
+
 #[inline(always)]
 pub fn state_set(data: &[u8], key: &[u8]) -> Result<u64> {
     unsafe {

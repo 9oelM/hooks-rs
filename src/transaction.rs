@@ -4,6 +4,11 @@ use crate::api::*;
 use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, TxnType};
 
 /// Builds a transaction to send XRP.
+///
+/// **Note that this only works with `cbak` function present in your hook code,
+/// because the transaction buffer size is different when cbak does not exist,
+/// but this case is not handled yet.**
+///
 /// Equivalent to PREPARE_PAYMENT_SIMPLE in `macro.h` in
 /// official hooks API.
 ///
@@ -19,11 +24,30 @@ use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, Txn
 /// 201A0065D303 // first ledger sequence (6 bytes)
 /// 201B0065D307 // last ledger sequence (6 bytes)
 /// 6140000000000003E8 // amount to send (9 bytes)
-/// 684000000000000000 // fee (9 bytes)
+/// 6840000000000000C7 // fee (9 bytes)
 /// 7321000000000000000000000000000000000000000000000000000000000000000000 // pub key, signed as null (35 bytes)
 /// 8114090A708604BC3BB4459F01E50AC0023FE682D2AD // source account (22 bytes)
 /// 8314A8B7F78C0AE9FD42183EE45170D05F92F7F74239 // destination account (22 bytes)
 /// ED202E000000013D00000000000000015B316CD7252B2F6A808CFBC98D9DD7C687316E850D7608647173A8793CD9553B2D5CB2D9188C36F2EEE397BCF9DAE609966A2F79C69275F57D7BD22DAB20ED037C765D2702C5E3E248D5DDBD1399D6AF79DB23FF37599BEA01AF2300985DA7BE52C0858A14090A708604BC3BB4459F01E50AC0023FE682D2ADE1 // txn details (138 bytes)
+/// ```
+///
+/// # Example
+///
+/// ```
+/// let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
+/// let mut xrp_payment_txn_buffer = XrpPaymentBuilder::uninit_buffer();
+/// match xrp_payment_txn_builder.build(&mut xrp_payment_txn_buffer) {
+///     Ok(ptr) => ptr,
+///     Err(err) => {
+///         rollback(b"could not build xrp payment txn", err.into());
+///     }
+/// };
+/// let txn_hash = match emit_from_ptr(xrp_payment_txn_buffer.as_ptr() as *const u8, 270) {
+///     Ok(hash) => hash,
+///     Err(err) => {
+///         rollback(b"could not emit xrp payment txn", err.into());
+///     }
+/// };
 /// ```
 pub struct XrpPaymentBuilder<'a> {
     drops: u64,
@@ -49,13 +73,79 @@ pub trait TransactionBuilder<const TXN_LEN: usize> {
     const TXN_LEN: usize = TXN_LEN;
     /// Transaction type of the transaction.
     const TXN_TYPE: TxnType;
-    /// Builds a specific transaction.
-    fn build(self) -> Result<[u8; TXN_LEN]>;
+    /// Builds a specific transaction and returns a pointer to it.
+    ///
+    /// The reason that this function must take a mutable reference to an uninitialized buffer
+    /// and cannot initialize its own buffer inside it to return it is because of Rust's
+    /// restrictions on returning unsafe pointer to local variables to the outer scope
+    /// and its compiler producing memcpy instructions on return a long buffer if we don't want to
+    /// return a pointer to a local variable.
+    ///
+    /// For example, if we were to do this inside a function:
+    /// ```
+    /// let mut uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
+    ///
+    /// ....
+    ///
+    /// return uninitialized_buffer.as_ptr() as *const u8
+    /// ```
+    ///
+    /// This never works, because `uninitialized_buffer` is dropped at the end of the function,
+    /// but the pointer to it is returned to the outer scope, which is undefined behavior.
+    ///
+    /// If we do this instead:
+    ///
+    /// ```
+    /// let mut uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
+    ///
+    /// ....
+    ///
+    /// return uninitialized_buffer
+    /// ```
+    ///
+    /// This is completely fine as it just moves `uninitialized_buffer`, but it will
+    /// somehow motivate the Rust compiler to create `memcpy` instruction, which is
+    /// prohibited in wasm that is to be used as a hook where only two function exports
+    /// are allowed: `hook` and `cbak`.
+    ///
+    /// # Example
+    /// Therefore, we have no choice but to use this syntax:
+    ///
+    /// ```
+    /// let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
+    /// let mut buffer = XrpPaymentBuilder::uninit_buffer();
+    /// match xrp_payment_txn_builder.build(&mut buffer) {
+    ///     Ok(ptr) => ptr,
+    ///     Err(err) => {
+    ///         rollback(b"could not build xrp payment txn", err.into());
+    ///     }
+    /// };
+    /// ```
+    fn build(&self, uninitialized_buffer: &mut [MaybeUninit<u8>; TXN_LEN]) -> Result<()>;
+
+    /// Utility method for creating an uninitialized buffer for a predefined length.
+    /// Use this for creating an uninitialized transaction buffer to pass to `build`.
+    ///
+    /// # Example
+    /// ```
+    /// let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
+    /// let mut buffer = XrpPaymentBuilder::uninit_buffer();
+    /// match xrp_payment_txn_builder.build(&mut buffer) {
+    ///     Ok(ptr) => ptr,
+    ///     Err(err) => {
+    ///         rollback(b"could not build xrp payment txn", err.into());
+    ///     }
+    /// };
+    /// ```
+    #[inline(always)]
+    fn uninit_buffer() -> [MaybeUninit<u8>; TXN_LEN] {
+        MaybeUninit::uninit_array()
+    }
 }
 
 /// A buffer for building a transaction.
-pub struct TransactionBuffer<const TXN_LEN: usize> {
-    buf: [MaybeUninit<u8>; TXN_LEN],
+pub struct TransactionBuffer<'a, const TXN_LEN: usize> {
+    buf: &'a mut [MaybeUninit<u8>; TXN_LEN],
     pos: usize,
 }
 
@@ -63,9 +153,7 @@ pub struct TransactionBuffer<const TXN_LEN: usize> {
 // of declaring it as an associated constant, but specifying
 // constant has the return type in `build` method is unstable
 // in Rust nightly right now. See `generic_const_exprs` feature.
-//
-// TODO: write bytes at once as u64 or u32 instead of byte by byte
-impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
+impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
     /// Encodes a transaction type.
     #[inline(always)]
     pub fn encode_txn_type(&mut self, tt: TxnType) {
@@ -73,15 +161,15 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(FieldCode::TransactionType.into());
+                .write(FieldCode::TransactionType.into());
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
-                .write_volatile(((tt as u16 >> 8) & 0xFF) as u8);
+                .write(((tt as u16 >> 8) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 2)
                 .as_mut_ptr()
-                .write_volatile((tt as u16 & 0xFF) as u8);
+                .write((tt as u16 & 0xFF) as u8);
         }
         self.pos += 3;
     }
@@ -93,23 +181,23 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(0x20 + (field & 0x0F));
+                .write(0x20 + (field & 0x0F));
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
-                .write_volatile(((data >> 24) & 0xFF) as u8);
+                .write(((data >> 24) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 2)
                 .as_mut_ptr()
-                .write_volatile(((data >> 16) & 0xFF) as u8);
+                .write(((data >> 16) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 3)
                 .as_mut_ptr()
-                .write_volatile(((data >> 8) & 0xFF) as u8);
+                .write(((data >> 8) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 4)
                 .as_mut_ptr()
-                .write_volatile((data & 0xFF) as u8);
+                .write((data & 0xFF) as u8);
         }
         self.pos += 5;
     }
@@ -121,27 +209,27 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(0x20);
+                .write(0x20);
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
-                .write_volatile(field);
+                .write(field);
             self.buf
                 .get_unchecked_mut(self.pos + 2)
                 .as_mut_ptr()
-                .write_volatile(((data >> 24) & 0xFF) as u8);
+                .write(((data >> 24) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 3)
                 .as_mut_ptr()
-                .write_volatile(((data >> 16) & 0xFF) as u8);
+                .write(((data >> 16) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 4)
                 .as_mut_ptr()
-                .write_volatile(((data >> 8) & 0xFF) as u8);
+                .write(((data >> 8) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(self.pos + 5)
                 .as_mut_ptr()
-                .write_volatile((data & 0xFF) as u8);
+                .write((data & 0xFF) as u8);
         }
         self.pos += 6;
     }
@@ -160,89 +248,88 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(pos)
                 .as_mut_ptr()
-                .write_volatile(0x60 + (amount_type & 0x0F));
+                .write(0x60 + (amount_type & 0x0F));
             self.buf
                 .get_unchecked_mut(pos + 1)
                 .as_mut_ptr()
-                .write_volatile((0b01000000 + ((drops >> 56) & 0b00111111)) as u8);
+                .write((0b01000000 + ((drops >> 56) & 0b00111111)) as u8);
             self.buf
                 .get_unchecked_mut(pos + 2)
                 .as_mut_ptr()
-                .write_volatile(((drops >> 48) & 0xFF) as u8);
+                .write(((drops >> 48) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(pos + 3)
                 .as_mut_ptr()
-                .write_volatile(((drops >> 40) & 0xFF) as u8);
+                .write(((drops >> 40) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(pos + 4)
                 .as_mut_ptr()
-                .write_volatile(((drops >> 32) & 0xFF) as u8);
+                .write(((drops >> 32) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(pos + 5)
                 .as_mut_ptr()
-                .write_volatile(((drops >> 24) & 0xFF) as u8);
+                .write(((drops >> 24) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(pos + 6)
                 .as_mut_ptr()
-                .write_volatile(((drops >> 16) & 0xFF) as u8);
+                .write(((drops >> 16) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(pos + 7)
                 .as_mut_ptr()
-                .write_volatile(((drops >> 8) & 0xFF) as u8);
+                .write(((drops >> 8) & 0xFF) as u8);
             self.buf
                 .get_unchecked_mut(pos + 8)
                 .as_mut_ptr()
-                .write_volatile((drops & 0xFF) as u8);
+                .write((drops & 0xFF) as u8);
         }
         self.pos += 9;
     }
 
-    /// Encodes an amount in drops at a specific position of the buffer that is already initialized.
+    /// Encodes an amount in drops at a specific position of the buffer.
+    ///
+    /// # Safety
+    /// `pos` must be a valid position in the buffer where the fee should be encoded at.
+    /// and the buffer must be initialized up to `pos + 9`.
+    ///
+    /// only call this function when you get the fee from [etxn_fee_base_from_ptr](etxn_fee_base_from_ptr)
+    /// and want to encode the fee.
     #[inline(always)]
-    pub fn encode_drops_at_buf(
-        initialized_buf: &mut [u8; 270],
+    pub unsafe fn encode_drops_at_buf(
+        uninitialized_buf: *mut MaybeUninit<u8>,
         pos: usize,
         drops: u64,
         amount_type: AmountType,
     ) {
         let amount_type: u8 = amount_type.into();
+        let mut pos_0 = MaybeUninit::uninit();
+        let mut pos_1 = MaybeUninit::uninit();
+        let mut pos_2 = MaybeUninit::uninit();
+        let mut pos_3 = MaybeUninit::uninit();
+        let mut pos_4 = MaybeUninit::uninit();
+        let mut pos_5 = MaybeUninit::uninit();
+        let mut pos_6 = MaybeUninit::uninit();
+        let mut pos_7 = MaybeUninit::uninit();
+        let mut pos_8 = MaybeUninit::uninit();
+
+        pos_0.write(0x60 + (amount_type & 0x0F));
+        pos_1.write((0b01000000 + ((drops >> 56) & 0b00111111)) as u8);
+        pos_2.write(((drops >> 48) & 0xFF) as u8);
+        pos_3.write(((drops >> 40) & 0xFF) as u8);
+        pos_4.write(((drops >> 32) & 0xFF) as u8);
+        pos_5.write(((drops >> 24) & 0xFF) as u8);
+        pos_6.write(((drops >> 16) & 0xFF) as u8);
+        pos_7.write(((drops >> 8) & 0xFF) as u8);
+        pos_8.write((drops & 0xFF) as u8);
         unsafe {
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos)
-                .write_volatile(0x60 + (amount_type & 0x0F));
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 1)
-                .write_volatile((0b01000000 + ((drops >> 56) & 0b00111111)) as u8);
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 2)
-                .write_volatile(((drops >> 48) & 0xFF) as u8);
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 3)
-                .write_volatile(((drops >> 40) & 0xFF) as u8);
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 4)
-                .write_volatile(((drops >> 32) & 0xFF) as u8);
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 5)
-                .write_volatile(((drops >> 24) & 0xFF) as u8);
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 6)
-                .write_volatile(((drops >> 16) & 0xFF) as u8);
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 7)
-                .write_volatile(((drops >> 8) & 0xFF) as u8);
-            initialized_buf
-                .as_mut_ptr()
-                .add(pos + 8)
-                .write_volatile((drops & 0xFF) as u8);
+            uninitialized_buf.add(pos).write(pos_0);
+            uninitialized_buf.add(pos + 1).write(pos_1);
+            uninitialized_buf.add(pos + 2).write(pos_2);
+            uninitialized_buf.add(pos + 3).write(pos_3);
+            uninitialized_buf.add(pos + 4).write(pos_4);
+            uninitialized_buf.add(pos + 5).write(pos_5);
+            uninitialized_buf.add(pos + 6).write(pos_6);
+            uninitialized_buf.add(pos + 7).write(pos_7);
+            uninitialized_buf.add(pos + 8).write(pos_8);
         }
     }
 
@@ -256,145 +343,18 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(0x73);
+                .write(0x73);
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
-                .write_volatile(0x21);
+                .write(0x21);
 
             // avoid creating loops in the resulting wasm
-            self.buf
-                .get_unchecked_mut(self.pos + 2)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 3)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 4)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 5)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 6)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 7)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 8)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 9)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 10)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 11)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 12)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 13)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 14)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 15)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 16)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 17)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 18)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 19)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 20)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 21)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 22)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 23)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 24)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 25)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 26)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 27)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 28)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 29)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 30)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 31)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 32)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 33)
-                .as_mut_ptr()
-                .write_volatile(0);
-            self.buf
-                .get_unchecked_mut(self.pos + 34)
-                .as_mut_ptr()
-                .write_volatile(0);
+            let u64_ptr = self.buf.get_unchecked_mut(self.pos + 2).as_mut_ptr() as *mut u64;
+            u64_ptr.write(0);
+            u64_ptr.offset(1).write(0);
+            u64_ptr.offset(2).write(0);
+            u64_ptr.offset(3).write(0); // total 32 bytes of 0
         }
         self.pos += 35;
     }
@@ -407,92 +367,26 @@ impl<const TXN_LEN: usize> TransactionBuffer<TXN_LEN> {
             self.buf
                 .get_unchecked_mut(self.pos)
                 .as_mut_ptr()
-                .write_volatile(0x80 + account_type);
+                .write(0x80 + account_type);
             self.buf
                 .get_unchecked_mut(self.pos + 1)
                 .as_mut_ptr()
-                .write_volatile(0x14);
+                .write(0x14);
 
-            self.buf
-                .get_unchecked_mut(self.pos + 2)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(0));
-            self.buf
-                .get_unchecked_mut(self.pos + 3)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(1));
-            self.buf
-                .get_unchecked_mut(self.pos + 4)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(2));
-            self.buf
-                .get_unchecked_mut(self.pos + 5)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(3));
-            self.buf
-                .get_unchecked_mut(self.pos + 6)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(4));
-            self.buf
-                .get_unchecked_mut(self.pos + 7)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(5));
-            self.buf
-                .get_unchecked_mut(self.pos + 8)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(6));
-            self.buf
-                .get_unchecked_mut(self.pos + 9)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(7));
-            self.buf
-                .get_unchecked_mut(self.pos + 10)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(8));
-            self.buf
-                .get_unchecked_mut(self.pos + 11)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(9));
-            self.buf
-                .get_unchecked_mut(self.pos + 12)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(10));
-            self.buf
-                .get_unchecked_mut(self.pos + 13)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(11));
-            self.buf
-                .get_unchecked_mut(self.pos + 14)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(12));
-            self.buf
-                .get_unchecked_mut(self.pos + 15)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(13));
-            self.buf
-                .get_unchecked_mut(self.pos + 16)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(14));
-            self.buf
-                .get_unchecked_mut(self.pos + 17)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(15));
-            self.buf
-                .get_unchecked_mut(self.pos + 18)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(16));
-            self.buf
-                .get_unchecked_mut(self.pos + 19)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(17));
-            self.buf
-                .get_unchecked_mut(self.pos + 20)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(18));
-            self.buf
-                .get_unchecked_mut(self.pos + 21)
-                .as_mut_ptr()
-                .write_volatile(*account_id.get_unchecked(19));
+            let u64_account_id_ptr = account_id.as_ptr() as *mut u64;
+            let u64_buf_ptr = self.buf.get_unchecked_mut(self.pos + 2).as_ptr() as *mut u64;
+
+            // 16 bytes written
+            u64_buf_ptr.write(u64_account_id_ptr.read());
+            u64_buf_ptr
+                .offset(1)
+                .write(u64_account_id_ptr.offset(1).read());
+
+            let u32_account_id_ptr = account_id.as_ptr().offset(16) as *mut u32;
+            let u32_buf_ptr = self.buf.get_unchecked_mut(self.pos + 18).as_ptr() as *mut u32;
+
+            // 4 bytes written
+            u32_buf_ptr.write(u32_account_id_ptr.read());
         }
         self.pos += 22;
     }
@@ -515,20 +409,17 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
     const TXN_TYPE: TxnType = TxnType::Payment;
 
     #[inline(always)]
-    fn build(self) -> Result<[u8; 270]> {
+    fn build(
+        &self,
+        uninitialized_buffer: &mut [MaybeUninit<u8>; XrpPaymentBuilder::TXN_LEN],
+    ) -> Result<()> {
         let current_ledger_sequence = ledger_seq() as u32;
         let hook_account = match hook_account() {
             Err(e) => return Err(e),
             Ok(acc) => acc,
         };
-        let uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
         let mut txn_buffer = TransactionBuffer {
-            buf: unsafe {
-                uninitialized_buffer
-                    .as_ptr()
-                    .cast::<[MaybeUninit<u8>; 270]>()
-                    .read_volatile()
-            },
+            buf: uninitialized_buffer,
             pos: 0,
         };
 
@@ -575,47 +466,32 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
         // destination account
         txn_buffer.encode_account(self.to_address, AccountType::Destination); // pos = 132
 
+        let buf_mut_ptr = txn_buffer.buf.as_mut_ptr();
         // transaction metadata
-        let insert_etxn_details_result: Result<u64> = insert_etxn_details(
-            unsafe { txn_buffer.buf.as_mut_ptr().add(txn_buffer.pos) as u32 },
-            138,
-        );
+        let insert_etxn_details_result: Result<u64> =
+            insert_etxn_details(unsafe { buf_mut_ptr.add(txn_buffer.pos) as u32 }, 138);
         match insert_etxn_details_result {
             Err(e) => return Err(e),
             Ok(_) => {}
         }
         txn_buffer.pos += 138; // pos = 270
 
-        let mut initialized_buffer = unsafe {
-            // use this instead of array_assume_init since it sometimes causes memcpy to be called
-            // when the array is sufficiently large
-            txn_buffer
-                .buf
-                .as_mut_ptr()
-                .cast::<[u8; 270]>()
-                .read_volatile()
-        };
-
         // encode fee because we have the full transaction now
-        let fee = match etxn_fee_base(&initialized_buffer) {
+        let fee = match etxn_fee_base_from_ptr(buf_mut_ptr, XrpPaymentBuilder::TXN_LEN as u32) {
             Err(e) => return Err(e),
             Ok(fee) => fee,
         };
 
-        TransactionBuffer::<270>::encode_drops_at_buf(
-            &mut initialized_buffer,
-            fee_pos,
-            fee,
-            AmountType::Fee,
-        );
-
         unsafe {
-            // this way, memcpy is not called
-            Ok(initialized_buffer
-                .as_ptr()
-                .cast::<[u8; 270]>()
-                .read_volatile())
-        }
+            TransactionBuffer::<{ XrpPaymentBuilder::TXN_LEN }>::encode_drops_at_buf(
+                buf_mut_ptr,
+                fee_pos,
+                fee,
+                AmountType::Fee,
+            )
+        };
+
+        Ok(())
     }
 }
 
@@ -628,9 +504,11 @@ impl From<FieldCode> for u8 {
 
 #[cfg(test)]
 mod tests {
+    use core::mem::MaybeUninit;
+
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    use crate::{AmountType, TransactionBuffer};
+    use crate::{AccountType, AmountType, TransactionBuffer, ACC_ID_LEN};
 
     #[wasm_bindgen_test]
     fn can_encode_transaction_type() {
@@ -664,8 +542,19 @@ mod tests {
         ];
 
         for txn_type in txn_types {
-            let buf = [MaybeUninit::uninit(); 270];
-            let mut txn_buffer = TransactionBuffer { buf, pos: 0 };
+            let mut uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
+            for i in 0..270 {
+                unsafe {
+                    uninitialized_buffer
+                        .get_unchecked_mut(i)
+                        .as_mut_ptr()
+                        .write(0);
+                }
+            }
+            let mut txn_buffer = TransactionBuffer {
+                buf: &mut uninitialized_buffer,
+                pos: 0,
+            };
             txn_buffer.encode_txn_type(txn_type);
             let txn_type: u8 = txn_type.into();
             unsafe {
@@ -685,15 +574,26 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn can_encode_drops_at_buf() {
-        let mut initialized_buffer = [0; 270];
-        TransactionBuffer::<270>::encode_drops_at_buf(
-            &mut initialized_buffer,
-            44,
-            12_u64,
-            AmountType::Fee,
-        );
+        let mut uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
+        // avoid undefined behavior when calling array_assume_init
+        for i in 0..270 {
+            unsafe {
+                uninitialized_buffer
+                    .get_unchecked_mut(i)
+                    .as_mut_ptr()
+                    .write(0);
+            }
+        }
+        unsafe {
+            TransactionBuffer::<270>::encode_drops_at_buf(
+                uninitialized_buffer.as_mut_ptr(),
+                44,
+                12_u64,
+                AmountType::Fee,
+            );
+        }
         assert_eq!(
-            initialized_buffer,
+            unsafe { MaybeUninit::array_assume_init(uninitialized_buffer) },
             [
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 104, 64, 0, 0, 0, 0, 0, 0, 12, 0,
@@ -707,5 +607,338 @@ mod tests {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         );
+    }
+
+    #[wasm_bindgen_test]
+    fn can_encode_account() {
+        let account: [u8; ACC_ID_LEN] = [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        ];
+        let mut uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
+        for i in 0..270 {
+            unsafe {
+                uninitialized_buffer
+                    .get_unchecked_mut(i)
+                    .as_mut_ptr()
+                    .write(0);
+            }
+        }
+        let mut txn_buffer = TransactionBuffer {
+            buf: &mut uninitialized_buffer,
+            pos: 15,
+        };
+        txn_buffer.encode_account(&account, AccountType::Account);
+
+        assert_eq!(txn_buffer.pos, 37);
+        assert_eq!(
+            unsafe { MaybeUninit::array_assume_init(uninitialized_buffer) },
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0x80 + AccountType::Account as u8,
+                0x14,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+            ]
+        )
+    }
+
+    #[wasm_bindgen_test]
+    fn can_encode_signing_pupkey_as_null() {
+        let mut uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
+        for i in 0..270 {
+            unsafe {
+                uninitialized_buffer
+                    .get_unchecked_mut(i)
+                    .as_mut_ptr()
+                    .write(0);
+            }
+        }
+        let mut txn_buffer = TransactionBuffer {
+            buf: &mut uninitialized_buffer,
+            pos: 30,
+        };
+        txn_buffer.encode_signing_pubkey_as_null();
+
+        assert_eq!(txn_buffer.pos, 65);
+        assert_eq!(
+            unsafe { MaybeUninit::array_assume_init(uninitialized_buffer) },
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0x73, 0x21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ]
+        )
     }
 }

@@ -22,13 +22,17 @@ pub extern "C" fn hook(_: u32) -> i64 {
         }
     };
     let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
-    let xrp_payment_txn = match xrp_payment_txn_builder.build() {
-        Ok(txn) => txn,
+    let mut xrp_payment_txn_buffer = XrpPaymentBuilder::uninit_buffer();
+    match xrp_payment_txn_builder.build(&mut xrp_payment_txn_buffer) {
+        Ok(ptr) => ptr,
         Err(err) => {
             rollback(b"could not build xrp payment txn", err.into());
         }
     };
-    let txn_hash = match emit(&xrp_payment_txn) {
+    let txn_hash = match emit_from_ptr(
+        xrp_payment_txn_buffer.as_ptr() as *const u8,
+        XrpPaymentBuilder::TXN_LEN as u32,
+    ) {
         Ok(hash) => hash,
         Err(err) => {
             rollback(b"could not emit xrp payment txn", err.into());
