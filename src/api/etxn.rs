@@ -33,6 +33,12 @@ pub fn etxn_fee_base(tx_blob: &[u8]) -> Result<u64> {
     unsafe { c::etxn_fee_base(tx_blob.as_ptr() as u32, tx_blob.len() as u32).into() }
 }
 
+/// Estimate the required fee for a txn to be emitted successfully
+#[inline(always)]
+pub fn etxn_fee_base_from_ptr(tx_blob_ptr: *mut MaybeUninit<u8>, tx_blob_len: u32) -> Result<u64> {
+    unsafe { c::etxn_fee_base(tx_blob_ptr as u32, tx_blob_len).into() }
+}
+
 /// Generate a 32 byte nonce for use in an emitted transaction
 #[inline(always)]
 pub fn etxn_nonce() -> Result<[u8; NONCE_LEN]> {
@@ -66,6 +72,26 @@ pub fn emit(tx: &[u8]) -> Result<[u8; HASH_LEN]> {
                 HASH_LEN as u32,
                 tx.as_ptr() as u32,
                 tx.len() as u32,
+            )
+            .into()
+        };
+
+        result
+    };
+
+    init_buffer_mut(func)
+}
+
+/// Emit a new transaction from the hook and return the 32-bytes long txn hash
+#[inline(always)]
+pub fn emit_from_ptr(tx_ptr: *const u8, tx_len: u32) -> Result<[u8; HASH_LEN]> {
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe {
+            c::emit(
+                buffer_mut_ptr as u32,
+                HASH_LEN as u32,
+                tx_ptr as u32,
+                tx_len,
             )
             .into()
         };

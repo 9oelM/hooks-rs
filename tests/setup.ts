@@ -247,4 +247,13 @@ export class TestUtils {
 
     return false;
   }
+
+  static async afterPromise<T>(
+    promise: Promise<T>,
+    promiseCb: (result: T) => void
+  ): Promise<T> {
+    const result = await promise;
+    promiseCb(result);
+    return result;
+  }
 }
