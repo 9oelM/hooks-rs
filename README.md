@@ -9,7 +9,7 @@ XRPL hooks in Rust.
 
 - Install Rust nightly.
 - Build and make [`hook-cleaner`](https://github.com/XRPLF/hook-cleaner-c) available in your `PATH`.
-- Install [`wasm-opt` from binaryet repo](https://github.com/WebAssembly/binaryen/releases) and make it available in your `PATH`.
+- Install [`wasm-opt` from binaryen repo](https://github.com/WebAssembly/binaryen/releases) and make it available in your `PATH`.
 
 ## Examples
 
