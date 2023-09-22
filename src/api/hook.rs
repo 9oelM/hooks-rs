@@ -4,6 +4,18 @@ use super::*;
 use crate::c;
 
 /// Retreive the 20 byte Account ID the Hook is executing on
+///
+/// # Example
+/// ```
+/// let hook_account = match hook_account() {
+///     Ok(acc) => acc,
+///     Err(err) => {
+///         rollback(b"hook_account.rs: hook_account() failed.", err.into());
+///     }
+/// };
+///
+/// accept(&hook_account, 0);
+/// ```
 #[inline(always)]
 pub fn hook_account() -> Result<[u8; ACC_ID_LEN]> {
     let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
@@ -17,6 +29,14 @@ pub fn hook_account() -> Result<[u8; ACC_ID_LEN]> {
 }
 
 /// Retrieve the parameter value for a named hook parameter
+///
+/// # Example
+/// ```
+/// match hook_param::<HOOK_PARAM_LEN>(b"param test") {
+///     Ok(param) => accept(&param, 0),
+///     Err(err) => rollback(b"cannot find hook param", err.into()),
+/// }
+/// ```
 #[inline(always)]
 pub fn hook_param<const HOOK_PARAM_LEN: usize>(
     parameter_name: &[u8],
