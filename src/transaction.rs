@@ -9,7 +9,7 @@ use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, Txn
 /// because the transaction buffer size is different when cbak does not exist,
 /// but this case is not handled yet.**
 ///
-/// Equivalent to PREPARE_PAYMENT_SIMPLE in `macro.h` in
+/// Equivalent to `PREPARE_PAYMENT_SIMPLE` in `macro.h` in
 /// official hooks API.
 ///
 /// When successfully built, the transaction buffer will be 270 bytes long
@@ -37,12 +37,12 @@ use crate::{c, hook_account, ledger_seq, AccountId, AccountType, AmountType, Txn
 /// let xrp_payment_txn_builder = XrpPaymentBuilder::new(1000, &otxn_account, 0, 0);
 /// let mut xrp_payment_txn_buffer = XrpPaymentBuilder::uninit_buffer();
 /// match xrp_payment_txn_builder.build(&mut xrp_payment_txn_buffer) {
-///     Ok(ptr) => ptr,
+///     Ok(_) => {}
 ///     Err(err) => {
 ///         rollback(b"could not build xrp payment txn", err.into());
 ///     }
 /// };
-/// let txn_hash = match emit_from_ptr(xrp_payment_txn_buffer.as_ptr() as *const u8, 270) {
+/// let txn_hash = match emit(&xrp_payment_txn_buffer) {
 ///     Ok(hash) => hash,
 ///     Err(err) => {
 ///         rollback(b"could not emit xrp payment txn", err.into());
@@ -73,7 +73,8 @@ pub trait TransactionBuilder<const TXN_LEN: usize> {
     const TXN_LEN: usize = TXN_LEN;
     /// Transaction type of the transaction.
     const TXN_TYPE: TxnType;
-    /// Builds a specific transaction and returns a pointer to it.
+    /// Builds a specific transaction by directly modifying the uninitialized buffer provided
+    /// as an argument.
     ///
     /// The reason that this function must take a mutable reference to an uninitialized buffer
     /// and cannot initialize its own buffer inside it to return it is because of Rust's
@@ -143,7 +144,8 @@ pub trait TransactionBuilder<const TXN_LEN: usize> {
     }
 }
 
-/// A buffer for building a transaction.
+/// A generic buffer for building a transaction.
+/// You can use this struct to build your custom transaction.
 pub struct TransactionBuffer<'a, const TXN_LEN: usize> {
     buf: &'a mut [MaybeUninit<u8>; TXN_LEN],
     pos: usize,
@@ -155,6 +157,13 @@ pub struct TransactionBuffer<'a, const TXN_LEN: usize> {
 // in Rust nightly right now. See `generic_const_exprs` feature.
 impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
     /// Encodes a transaction type.
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// txn_buffer.encode_txn_type(TxnType::Payment);
+    /// ```
     #[inline(always)]
     pub fn encode_txn_type(&mut self, tt: TxnType) {
         unsafe {
@@ -174,7 +183,18 @@ impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
         self.pos += 3;
     }
 
-    /// Encodes a u32 value.
+    /// Encodes a serialized field value for the first byte,
+    /// and encodes the u32 data on the rest of the 4 bytes.
+    ///
+    /// Check [serialization format](https://xrpl.org/serialization.html) to see
+    /// which field codes are available to be encoded using this method.
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// txn_buffer.encode_u32(c::tfCANONICAL, FieldCode::Flags.into());
+    /// ```
     #[inline(always)]
     pub fn encode_u32(&mut self, data: u32, field: u8) {
         unsafe {
@@ -202,7 +222,21 @@ impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
         self.pos += 5;
     }
 
-    /// Encodes a u32 value with a field id.
+    /// Encodes a u32 value with a field id. Note that
+    /// the firsrt byte is always encoded as `0x20` and the second byte
+    /// is always encoded as the field id. The rest of the 4 bytes are encoded
+    /// with the u32 data.
+    ///
+    /// Check [serialization format](https://xrpl.org/serialization.html) to see
+    /// which field codes are available to be encoded using this method.
+    ///
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// txn_buffer.encode_u32_with_field_id(1000, FieldCode::Sequence.into());
+    /// ```
     #[inline(always)]
     pub fn encode_u32_with_field_id(&mut self, data: u32, field: u8) {
         unsafe {
@@ -235,12 +269,28 @@ impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
     }
 
     /// Encodes amount in drops.
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// txn_buffer.encode_drops(12, AmountType::Fee);
+    /// ```
     #[inline(always)]
     pub fn encode_drops(&mut self, drops: u64, amount_type: AmountType) {
         self.encode_drops_at(self.pos, drops, amount_type);
     }
 
     /// Encodes amount in drops at a specific position.
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// let fee = etxn_fee_base(&txn_buffer);
+    ///
+    /// txn_buffer.encode_drops_at(45, fee, AmountType::Fee);
+    /// ```
     #[inline(always)]
     pub fn encode_drops_at(&mut self, pos: usize, drops: u64, amount_type: AmountType) {
         let amount_type: u8 = amount_type.into();
@@ -291,10 +341,21 @@ impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
     /// `pos` must be a valid position in the buffer where the fee should be encoded at.
     /// and the buffer must be initialized up to `pos + 9`.
     ///
-    /// only call this function when you get the fee from [etxn_fee_base_from_ptr](etxn_fee_base_from_ptr)
+    /// only call this function when you get the fee from [etxn_fee_base_from_ptr] or [etxn_fee_base]
     /// and want to encode the fee.
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// ...
+    ///
+    /// let fee = etxn_fee_base(&txn_buffer);
+    ///
+    /// txn_buffer.encode_drops_at_buf_ptr(unsafe { txn_buffer.as_mut_ptr() }, 45, fee, AmountType::Fee);
+    /// ```
     #[inline(always)]
-    pub unsafe fn encode_drops_at_buf(
+    pub unsafe fn encode_drops_at_buf_ptr(
         uninitialized_buf: *mut MaybeUninit<u8>,
         pos: usize,
         drops: u64,
@@ -333,7 +394,15 @@ impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
         }
     }
 
-    /// Encodes a signing public key as null.
+    /// Encodes a signing public key as null. For transactions
+    /// emitted from hooks, the signing public key is always null.
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// txn_buffer.encode_signing_pubkey_as_null();
+    /// ```
     #[inline(always)]
     pub fn encode_signing_pubkey_as_null(&mut self) {
         // leave self.buf[self.pos + 2..self.pos + 35] as 0 because they
@@ -360,6 +429,13 @@ impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
     }
 
     /// Encodes an account.
+    ///
+    /// # Example
+    /// ```
+    /// let mut txn_buffer = ...
+    ///
+    /// txn_buffer.encode_account(&otxn_account, AccountType::Account);
+    /// ```
     #[inline(always)]
     pub fn encode_account(&mut self, account_id: &AccountId, account_type: AccountType) {
         unsafe {
@@ -393,7 +469,7 @@ impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
 }
 
 impl<'a> XrpPaymentBuilder<'a> {
-    /// Creates a new builder.
+    /// Creates a new builder for XRP payment.
     #[inline(always)]
     pub fn new(drops: u64, to_address: &'a [u8; 20], dest_tag: u32, src_tag: u32) -> Self {
         Self {
@@ -468,22 +544,22 @@ impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
 
         let buf_mut_ptr = txn_buffer.buf.as_mut_ptr();
         // transaction metadata
-        let insert_etxn_details_result: Result<u64> =
-            insert_etxn_details(unsafe { buf_mut_ptr.add(txn_buffer.pos) as u32 }, 138);
-        match insert_etxn_details_result {
+        let insert_etxn_details_from_ptr_result: Result<u64> =
+            insert_etxn_details_from_ptr(unsafe { buf_mut_ptr.add(txn_buffer.pos) as u32 }, 138);
+        match insert_etxn_details_from_ptr_result {
             Err(e) => return Err(e),
             Ok(_) => {}
         }
         txn_buffer.pos += 138; // pos = 270
 
         // encode fee because we have the full transaction now
-        let fee = match etxn_fee_base_from_ptr(buf_mut_ptr, XrpPaymentBuilder::TXN_LEN as u32) {
+        let fee = match etxn_fee_base_from_ptr(buf_mut_ptr, XrpPaymentBuilder::TXN_LEN) {
             Err(e) => return Err(e),
             Ok(fee) => fee,
         };
 
         unsafe {
-            TransactionBuffer::<{ XrpPaymentBuilder::TXN_LEN }>::encode_drops_at_buf(
+            TransactionBuffer::<{ XrpPaymentBuilder::TXN_LEN }>::encode_drops_at_buf_ptr(
                 buf_mut_ptr,
                 fee_pos,
                 fee,
@@ -573,7 +649,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn can_encode_drops_at_buf() {
+    fn can_encode_drops_at_buf_ptr() {
         let mut uninitialized_buffer: [MaybeUninit<u8>; 270] = MaybeUninit::uninit_array();
         // avoid undefined behavior when calling array_assume_init
         for i in 0..270 {
@@ -585,7 +661,7 @@ mod tests {
             }
         }
         unsafe {
-            TransactionBuffer::<270>::encode_drops_at_buf(
+            TransactionBuffer::<270>::encode_drops_at_buf_ptr(
                 uninitialized_buffer.as_mut_ptr(),
                 44,
                 12_u64,

@@ -1,3 +1,10 @@
+//! These trace functions are used with XRPL Websocket debug stream.
+//!
+//! Connect with websocket to `wss://xahau-test.net/debugstream/{r-address}/` or browse to
+//! `https://xahau-test.net/debugstream/{r-address}/` to see the debug stream.
+//!
+//! Your trace logs should appear in the debug stream.
+
 use core::mem::size_of_val;
 
 use crate::c;

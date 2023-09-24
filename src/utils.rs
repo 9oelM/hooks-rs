@@ -27,7 +27,18 @@ where
     data: &'a [T; N],
 }
 
-/// Tests two buffers for equality
+/// Tests two buffers for equality, without needing to specify the max iteration count
+/// or use a guard function.
+///
+/// # Example
+/// ```
+/// const A: &[u8; 14] = b"same same same";
+/// const B: &[u8; 14] = b"same same same";
+///
+/// if !is_buffer_equal(A, B) {
+///     rollback(b"arrays are not the same", -1);
+/// }
+/// ```
 #[inline(always)]
 pub fn is_buffer_equal<T: PartialEq>(buf_1: &[T], buf_2: &[T]) -> bool {
     let buf1_len = buf_1.len();
@@ -49,21 +60,6 @@ pub fn is_buffer_equal<T: PartialEq>(buf_1: &[T], buf_2: &[T]) -> bool {
     }
 
     true
-}
-
-/// Zeroize a buffer
-#[inline(always)]
-pub fn buffer_zeroize<const GUARD_ID: u32>(buf: &mut [u8]) {
-    let buf_len = buf.len();
-    // guarded loop
-    let mut i = 0;
-    while {
-        max_iter(buf_len as u32 + 1);
-        i < buf_len
-    } {
-        buf[0] = 0;
-        i += 1;
-    }
 }
 
 impl<'a, T: PartialEq, const N: usize> ComparableArray<'a, T, N> {
