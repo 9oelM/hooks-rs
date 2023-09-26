@@ -132,3 +132,17 @@ The latest header files can be found at https://github.com/XRPLF/hook-macros
 
 - This is a fork of [otov4its/xrpl-hooks](https://github.com/otov4its/xrpl-hooks) which has been unmaintained for a long time.
 - Lots of examples and codes have been adopted from [dangell7](https://github.com/dangell7)'s repositories.
+
+# Contributing
+
+There are still many parts of the C API that are not supported yet. The first priority for now would be to get all of them working.
+
+If you have all checkboxes below ticked, you can proceed to create a PR:
+
+- [ ] You have implemented something that wasn't here before
+- [ ] You have created an integration test to prove that it works. See `/tests` folder to see the existing integration test examples. Currently, each integration test would cover the smallest unit of testable 'chunk', because hooks is impossible to be tested without a live connection with an actual XRPL node, no matter if it is on local docker or is one of the testnet nodes. Therefore, an integration test is somewhat like an unit test but still connects to an actual XRPL node to run the hook to see if it actually works. Make sure the all of the state changes caused by the hook are correctly asserted, before and after the execution of the hook.
+- [ ] You have created an example in `/examples` folder. The example hook file should contain the most minimal example of how the feature that you have added can be used. Use this example as a documentation for the function as well, so that it can appear in the generated documentation.
+- [ ] CI is passing. Unless all workflows give you a green tick, the PR is unlikely to be reviewed.
+- [ ] The PR has a sufficient description of what it adds or changes. The title of the PR would usually just follow semantic commit messages convention. Do not worry about the commit messages themselves that much, since they are going to be squashed anyway.
+
+Remember that this repository is a novel combination of two amazing concepts: Rust and Hooks. And neither of these are easy nor familiar with the general audience. If you are not sure where to start, probably start with the book, which will give you some idea to start with.
