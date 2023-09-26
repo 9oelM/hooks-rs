@@ -15,6 +15,10 @@ XRPL hooks in Rust.
 
 See [examples](./examples/).
 
+## Documentation (WIP)
+
+The book covers very few things for now but you can have a look: https://9oelm.github.io/hooks-rs/
+
 ## Supported functions
 
 Control
@@ -133,7 +137,7 @@ The latest header files can be found at https://github.com/XRPLF/hook-macros
 - This is a fork of [otov4its/xrpl-hooks](https://github.com/otov4its/xrpl-hooks) which has been unmaintained for a long time.
 - Lots of examples and codes have been adopted from [dangell7](https://github.com/dangell7)'s repositories.
 
-# Contributing
+## Contributing
 
 There are still many parts of the C API that are not supported yet. The first priority for now would be to get all of them working.
 

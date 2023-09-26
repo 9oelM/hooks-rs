@@ -1,0 +1,51 @@
+on:
+  push:
+    branches:
+      - "main"
+
+name: "Book"
+
+jobs:
+  build_and_deploy_book:
+    name: "Build and deploy the book"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: write # To push a branch
+      pages: write # To push to a GitHub Pages site
+      id-token: write # To update the deployment status
+    steps:
+      - name: "Checkout source code"
+        uses: "actions/checkout@v3"
+
+      - name: "Use Rust Nightly"
+        uses: "actions-rs/toolchain@v1"
+        with:
+          toolchain: "nightly"
+          profile: "minimal"
+          components: "clippy,rustfmt"
+          override: true
+
+      - name: "Use Rust cache"
+        uses: "Swatinem/rust-cache@v2"
+        with:
+          cache-on-failure: true
+
+      - name: Install mdbook v0.4.34
+        run: |
+          url="https://github.com/rust-lang/mdbook/releases/download/v0.4.34/mdbook-v0.4.34-x86_64-unknown-linux-gnu.tar.gz"
+          mkdir mdbook
+          curl -sSL $url | tar -xz --directory=./mdbook
+          echo `pwd`/mdbook >> $GITHUB_PATH
+      - name: Build Book
+        run: |
+          cd book
+          mdbook build
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: "book/book"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1

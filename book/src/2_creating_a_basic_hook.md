@@ -74,7 +74,7 @@ Now, we have the `hook` function. The first line inside it cals `max_iter`. One 
 let _ = trace(b"accept.rs: Called.", b"", DataRepr::AsUTF8);
 ```
 
-The next line is a trace call. It's similar to `console.log` in JavaScript or `cout` in `C++`. It is for debugging purposes. At the time of writing, you can establish a manual websocket connection to `wss://xahau-test.net/{r-address}` or navigate to https://xahau-test.net/{r-address}` on your browser.
+The next line is a trace call. It's similar to `console.log` in JavaScript or `cout` in `C++`. It is for debugging purposes. At the time of writing, you can establish a manual websocket connection to `wss://xahau-test.net/{r-address}` or navigate to [https://hooks-testnet-v3-debugstream.xrpl-labs.com/](https://hooks-testnet-v3-debugstream.xrpl-labs.com/) on your browser.
 
 When the hook gets executed, the log should appear on the browser. If you intend to inspect logs from CLI, the easiest way is to install any websocket connection tools liks `websocat` and just run something like `websocat "wss://xahau-test.net/rL36bt3dv4o27hJup1hrKN2XfnzhYUQ5ez"` and the logs will start appearing if there's something happening with `rL36bt3dv4o27hJup1hrKN2XfnzhYUQ5ez`.
 
