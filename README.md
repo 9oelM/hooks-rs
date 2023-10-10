@@ -28,7 +28,7 @@ Control
 
 Utilities
 
-- [ ] `util_raddr`
+- [x] `util_raddr`
 - [ ] `util_accid`
 - [ ] `util_verify`
 - [ ] `util_sha512h`

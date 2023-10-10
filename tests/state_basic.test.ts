@@ -59,7 +59,7 @@ describe("state_basic.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -80,18 +80,18 @@ describe("state_basic.rs", () => {
       for (const address of [alice.classicAddress, bob.classicAddress]) {
         // Hook always returns uppercase hex string
         const addressAsStateKey = padHexString(
-          decodeAccountID(address).toString("hex").toUpperCase()
+          decodeAccountID(address).toString("hex").toUpperCase(),
         );
         // Hook always returns uppercase hex string
         const actualState = await StateUtility.getHookState(
           client,
           alice.classicAddress,
           addressAsStateKey,
-          `${HOOK_NAME}namespace`
+          `${HOOK_NAME}namespace`,
         );
 
         expect(
-          TestUtils.deserializeHexStringAsBigInt(actualState.HookStateData)
+          TestUtils.deserializeHexStringAsBigInt(actualState.HookStateData),
         ).toBe(2n);
         expect(actualState.HookStateKey).toBe(addressAsStateKey);
       }
@@ -105,6 +105,6 @@ describe("state_basic.rs", () => {
       // Hook state data is also returned as a parameter to 'accept' function
       expect(TestUtils.deserializeHexStringAsBigInt(HookReturnString)).toBe(2n);
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });

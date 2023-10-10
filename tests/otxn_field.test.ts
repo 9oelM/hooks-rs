@@ -54,7 +54,7 @@ describe("otxn_field.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -79,10 +79,10 @@ describe("otxn_field.rs", () => {
 
       // HookReturnString should contain 20-bytes long representation of account address in uppercase hex string.
       expect(HookReturnString).toMatch(
-        decodeAccountID(bob.address).toString("hex").toUpperCase()
+        decodeAccountID(bob.address).toString("hex").toUpperCase(),
       );
       expect(Number(HookReturnCode)).toBe(0);
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });

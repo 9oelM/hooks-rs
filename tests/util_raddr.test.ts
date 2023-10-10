@@ -2,28 +2,16 @@
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
 import { Faucet, TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
-import {
-  iHookParamEntry,
-  iHookParamName,
-  iHookParamValue,
-} from "@transia/hooks-toolkit";
 
-const HOOK_NAME = "hook_param";
+const HOOK_NAME = "util_raddr";
 
-describe("hook_param.rs", () => {
+describe("util_raddr.rs", () => {
   let client: Client;
   let alice: Wallet;
   let bob: Wallet;
-  const HOOK_PARAMETER_VALUE = `abcdefg123`;
 
   beforeAll(async () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
-    hook.HookParameters = [
-      new iHookParamEntry(
-        new iHookParamName("param test"),
-        new iHookParamValue(HOOK_PARAMETER_VALUE),
-      ).toXrpl(),
-    ];
     client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
@@ -41,7 +29,7 @@ describe("hook_param.rs", () => {
   }, 10_000);
 
   it(
-    "accepts with the value of the hook parameter",
+    "converts account id to an r-address",
     async () => {
       const tx: Invoke & Transaction = {
         TransactionType: "Invoke",
@@ -54,8 +42,8 @@ describe("hook_param.rs", () => {
       const txResponse = await TestUtils.submitAndWaitWithRetries(
         client,
         {
-          Fee: fee,
           ...tx,
+          Fee: fee,
         },
         {
           wallet: bob,
@@ -68,24 +56,17 @@ describe("hook_param.rs", () => {
       if (typeof txResponse.result.meta === "string") {
         throw new Error("Meta is string, not object");
       }
-
-      const { meta } = txResponse.result;
-      if (!(meta.HookExecutions && meta.HookExecutions.length > 0)) {
-        throw new Error(`Hook execution data is empty`);
-      }
-
-      if (meta.HookExecutions.length > 1) {
-        throw new Error(`Hook execution happened more than once`);
-      }
-
-      // safe type: we checked everything
-      const [hookExecution] = meta.HookExecutions as [HookExecution];
+      const [hookExecution] = txResponse.result.meta.HookExecutions as [
+        HookExecution,
+      ];
 
       const { HookReturnString, HookReturnCode } = hookExecution.HookExecution;
 
-      expect(Number(HookReturnCode)).toBe(0);
-      expect(Buffer.from(HookReturnString, "hex").toString()).toMatch(
-        HOOK_PARAMETER_VALUE,
+      expect(
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
+      ).toBe(0n);
+      expect(HookReturnString).toMatch(
+        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`.toUpperCase(),
       );
     },
     3 * 60_000,
