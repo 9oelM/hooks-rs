@@ -33,7 +33,7 @@ jobs:
 
       - name: "Install prettier"
         run: |
-          yarn global add prettier@2.8.8
+          yarn global add prettier@3.0.3
 
       - name: "Install gcc-multilib"
         run: |

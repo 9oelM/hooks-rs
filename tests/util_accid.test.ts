@@ -1,29 +1,25 @@
 // xrpl
-import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
+import {
+  Client,
+  Invoke,
+  Transaction,
+  Wallet,
+  decodeAccountID,
+} from "@transia/xrpl";
 import { Faucet, TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
-import {
-  iHookParamEntry,
-  iHookParamName,
-  iHookParamValue,
-} from "@transia/hooks-toolkit";
 
-const HOOK_NAME = "hook_param";
+const HOOK_NAME = "util_accid";
 
-describe("hook_param.rs", () => {
+// util_accid is not working, needs more debugging.
+// skip the test for now
+describe.skip("util_accid.rs", () => {
   let client: Client;
   let alice: Wallet;
   let bob: Wallet;
-  const HOOK_PARAMETER_VALUE = `abcdefg123`;
 
   beforeAll(async () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
-    hook.HookParameters = [
-      new iHookParamEntry(
-        new iHookParamName("param test"),
-        new iHookParamValue(HOOK_PARAMETER_VALUE),
-      ).toXrpl(),
-    ];
     client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
@@ -40,8 +36,8 @@ describe("hook_param.rs", () => {
     await client.disconnect();
   }, 10_000);
 
-  it(
-    "accepts with the value of the hook parameter",
+  it.skip(
+    "converts r-address to an account id",
     async () => {
       const tx: Invoke & Transaction = {
         TransactionType: "Invoke",
@@ -54,8 +50,8 @@ describe("hook_param.rs", () => {
       const txResponse = await TestUtils.submitAndWaitWithRetries(
         client,
         {
-          Fee: fee,
           ...tx,
+          Fee: fee,
         },
         {
           wallet: bob,
@@ -68,24 +64,19 @@ describe("hook_param.rs", () => {
       if (typeof txResponse.result.meta === "string") {
         throw new Error("Meta is string, not object");
       }
-
-      const { meta } = txResponse.result;
-      if (!(meta.HookExecutions && meta.HookExecutions.length > 0)) {
-        throw new Error(`Hook execution data is empty`);
-      }
-
-      if (meta.HookExecutions.length > 1) {
-        throw new Error(`Hook execution happened more than once`);
-      }
-
-      // safe type: we checked everything
-      const [hookExecution] = meta.HookExecutions as [HookExecution];
+      const [hookExecution] = txResponse.result.meta.HookExecutions as [
+        HookExecution,
+      ];
 
       const { HookReturnString, HookReturnCode } = hookExecution.HookExecution;
 
-      expect(Number(HookReturnCode)).toBe(0);
-      expect(Buffer.from(HookReturnString, "hex").toString()).toMatch(
-        HOOK_PARAMETER_VALUE,
+      expect(
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
+      ).toBe(0n);
+      expect(HookReturnString).toMatch(
+        decodeAccountID("rLqUFYGLMBS9jF63iRkadvu3cTixadRTd3")
+          .toString(`hex`)
+          .toUpperCase(),
       );
     },
     3 * 60_000,

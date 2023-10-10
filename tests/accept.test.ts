@@ -48,7 +48,7 @@ describe("accept.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -58,16 +58,16 @@ describe("accept.rs", () => {
       }
       const hookExecutions = await ExecutionUtility.getHookExecutionsFromMeta(
         client,
-        txResponse.result.meta
+        txResponse.result.meta,
       );
       if (!hookExecutions.executions[0]) {
         throw new Error(`Hook execution data is empty`);
       }
 
       expect(hookExecutions.executions[0].HookReturnString).toMatch(
-        "accept.rs: Finished."
+        "accept.rs: Finished.",
       );
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });

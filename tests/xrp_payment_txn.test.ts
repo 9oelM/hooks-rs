@@ -29,7 +29,7 @@ describe("xrp_payment_txn.rs", () => {
   }, 10_000);
 
   it(
-    "accepts an incoming txn",
+    `alice pays 1000 XRP to bob`,
     async () => {
       const {
         result: {
@@ -66,7 +66,7 @@ describe("xrp_payment_txn.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -75,13 +75,13 @@ describe("xrp_payment_txn.rs", () => {
         throw new Error("Meta is string, not object");
       }
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
-        HookExecution
+        HookExecution,
       ];
 
       const { HookReturnString, HookReturnCode } = hookExecution.HookExecution;
 
       expect(
-        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString())
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
       ).toBe(0n);
       expect(HookReturnString).toMatch(/^[A-F0-9]{64}$/);
 
@@ -114,12 +114,12 @@ describe("xrp_payment_txn.rs", () => {
 
       const dropsSentToBob = 1000;
       expect(Number(bobBalanceAfter) - dropsSentToBob).toBe(
-        Number(bobBalanceBefore) - Number(fee)
+        Number(bobBalanceBefore) - Number(fee),
       );
       expect(
-        Number(aliceBalanceAfter) + dropsSentToBob + Number(emittedTxFee)
+        Number(aliceBalanceAfter) + dropsSentToBob + Number(emittedTxFee),
       ).toBeCloseTo(Number(aliceBalanceBefore));
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });

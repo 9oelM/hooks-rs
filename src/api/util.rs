@@ -1,148 +1,116 @@
+use core::mem::MaybeUninit;
+
 use crate::c;
 
 use super::*;
 
-/// Convert a 20 byte Account ID to an r-address
+/// Convert a 20 byte Account ID to an r-address of 25 and 35 characters in length.
+///
+/// The resulting buffer might not be fully populated because size of an r-address varies.
+/// The rest of the buffer will be filled with zeroes.
 #[inline(always)]
-pub fn util_raddr(raddr_out: &mut [u8], accid: &[u8]) -> Result<u64> {
-    buf_write_read(raddr_out, accid, c::util_raddr)
+pub fn util_raddr(accid: &[u8; 20]) -> Result<[u8; 35]> {
+    let mut uninit_r_address_buffer: [MaybeUninit<u8>; 35] = MaybeUninit::uninit_array();
+
+    let u64_uninit_r_address_buffer_ptr = uninit_r_address_buffer.as_mut_ptr() as *mut u64;
+    unsafe {
+        u64_uninit_r_address_buffer_ptr.write(0); // 8 bytes
+        u64_uninit_r_address_buffer_ptr.add(1).write(0); // 16 bytes
+        u64_uninit_r_address_buffer_ptr.add(2).write(0); // 24 bytes
+        u64_uninit_r_address_buffer_ptr.add(3).write(0); // 32 bytes
+    }
+    unsafe {
+        let r_address_last_3_bytes_ptr = uninit_r_address_buffer.get_unchecked_mut(32).as_mut_ptr();
+        r_address_last_3_bytes_ptr.write(0);
+        r_address_last_3_bytes_ptr.add(1).write(0);
+        r_address_last_3_bytes_ptr.add(2).write(0);
+    };
+    let mut r_address_buffer = unsafe {
+        uninit_r_address_buffer
+            .as_ptr()
+            .cast::<[u8; 35]>()
+            .read_volatile()
+    };
+
+    let result: Result<u64> = unsafe {
+        c::util_raddr(
+            r_address_buffer.as_mut_ptr() as u32,
+            35,
+            accid.as_ptr() as u32,
+            ACC_ID_LEN as u32,
+        )
+        .into()
+    };
+
+    match result {
+        Ok(_) => Ok(r_address_buffer),
+        Err(e) => Err(e),
+    }
 }
 
 /// Convert an r-address into a 20 byte Account ID
+///
+/// R_ADDRESS_LEN must be >= 25 && <= 35.
 #[inline(always)]
-pub fn util_accid(accid_out: &mut [u8], raddr_in: &[u8]) -> Result<u64> {
-    buf_write_read(accid_out, raddr_in, c::util_accid)
+pub fn util_accid<const R_ADDRESS_LEN: usize>(raddr_in: &[u8; R_ADDRESS_LEN]) -> Result<[u8; 20]> {
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe {
+            c::util_raddr(
+                buffer_mut_ptr as u32,
+                ACC_ID_LEN as u32,
+                raddr_in.as_ptr() as u32,
+                R_ADDRESS_LEN as u32,
+            )
+            .into()
+        };
+
+        result
+    };
+
+    init_buffer_mut::<ACC_ID_LEN, _>(func)
 }
 
 /// Verify a cryptographic signature
+///
+/// If the public key is prefixed with 0xED then use ED25519. Otherwise assume SECP256k1.
 #[inline(always)]
-pub fn util_verify(payload: &[u8], signature: &[u8], publickey: &[u8]) -> bool {
-    let res = buf_3_read(payload, signature, publickey, c::util_verify);
+pub fn util_verify(payload: &[u8], signature: &[u8], publickey: &[u8]) -> Result<bool> {
+    let result: Result<u64> = unsafe {
+        c::util_verify(
+            payload.as_ptr() as _,
+            payload.len() as _,
+            signature.as_ptr() as _,
+            signature.len() as _,
+            publickey.as_ptr() as _,
+            publickey.len() as _,
+        )
+        .into()
+    };
 
-    match res {
-        Ok(0) => false,
-        Ok(1) => true,
-        _ => false,
+    match result {
+        Ok(0) => Ok(false),
+        Ok(1) => Ok(true),
+        Err(e) => Err(e),
+        _ => unreachable!(),
     }
 }
 
 /// Compute an sha512-half over some data
 #[inline(always)]
-pub fn util_sha512h(hash_out: &mut [u8], data_in: &[u8]) -> Result<u64> {
-    buf_write_read(hash_out, data_in, c::util_sha512h)
-}
+pub fn util_sha512h(data_in: &[u8]) -> Result<[u8; HASH_LEN]> {
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe {
+            c::util_sha512h(
+                buffer_mut_ptr as u32,
+                HASH_LEN as u32,
+                data_in.as_ptr() as u32,
+                data_in.len() as u32,
+            )
+            .into()
+        };
 
-/// Compute a serialized keylet of a given type
-#[inline(always)]
-pub fn util_keylet(keylet: &mut [u8], keylet_type: KeyletType) -> Result<u64> {
-    let write_ptr = keylet.as_mut_ptr() as _;
-    let write_len = keylet.len() as _;
+        result
+    };
 
-    match keylet_type {
-        KeyletType::Hook(accid) => buf_read_and_zeroes(keylet, accid, c::KEYLET_HOOK),
-
-        KeyletType::HookState(accid, statekey) => {
-            buf_2_read_and_zeroes(keylet, accid, statekey, c::KEYLET_HOOK_STATE)
-        }
-
-        KeyletType::Account(accid) => buf_read_and_zeroes(keylet, accid, c::KEYLET_ACCOUNT),
-
-        KeyletType::Amendments => all_zeroes(keylet, c::KEYLET_AMENDMENTS),
-
-        KeyletType::Child(key) => buf_read_and_zeroes(keylet, key, c::KEYLET_CHILD),
-
-        KeyletType::Skip(opt) => match opt {
-            None => all_zeroes(keylet, c::KEYLET_SKIP),
-
-            Some((ledger_index, num)) => {
-                let res = unsafe {
-                    c::util_keylet(
-                        write_ptr,
-                        write_len,
-                        c::KEYLET_SKIP,
-                        ledger_index,
-                        num,
-                        0,
-                        0,
-                        0,
-                        0,
-                    )
-                };
-
-                res.into()
-            }
-        },
-
-        KeyletType::Fees => all_zeroes(keylet, c::KEYLET_FEES),
-
-        KeyletType::NegativeUnl => all_zeroes(keylet, c::KEYLET_NEGATIVE_UNL),
-
-        KeyletType::Line(accid_high, accid_low, currency_code) => {
-            let res = unsafe {
-                c::util_keylet(
-                    write_ptr,
-                    write_len,
-                    c::KEYLET_LINE,
-                    accid_high.as_ptr() as _,
-                    accid_high.len() as _,
-                    accid_low.as_ptr() as _,
-                    accid_low.len() as _,
-                    currency_code.as_ptr() as _,
-                    currency_code.len() as _,
-                )
-            };
-
-            res.into()
-        }
-
-        KeyletType::Offer(accid, num) => buf_read_and_1_arg(keylet, accid, num, c::KEYLET_OFFER),
-
-        KeyletType::Quality(serialized_keylet, bits_high, bits_low) => buf_read_and_2_args(
-            keylet,
-            serialized_keylet,
-            bits_high,
-            bits_low,
-            c::KEYLET_QUALITY,
-        ),
-
-        KeyletType::EmittedDir => all_zeroes(keylet, c::KEYLET_EMITTED_DIR),
-
-        KeyletType::Signers(accid) => buf_read_and_zeroes(keylet, accid, c::KEYLET_SIGNERS),
-
-        KeyletType::Check(accid, num) => buf_read_and_1_arg(keylet, accid, num, c::KEYLET_CHECK),
-
-        KeyletType::DepositPreauth(accid_1, accid_2) => {
-            buf_2_read_and_zeroes(keylet, accid_1, accid_2, c::KEYLET_DEPOSIT_PREAUTH)
-        }
-
-        KeyletType::Unchecked(key) => buf_read_and_zeroes(keylet, key, c::KEYLET_UNCHECKED),
-
-        KeyletType::OwnerDir(accid) => buf_read_and_zeroes(keylet, accid, c::KEYLET_OWNER_DIR),
-
-        KeyletType::Page(key, bits_high, bits_low) => {
-            buf_read_and_2_args(keylet, key, bits_high, bits_low, c::KEYLET_PAGE)
-        }
-
-        KeyletType::Escrow(accid, num) => buf_read_and_1_arg(keylet, accid, num, c::KEYLET_ESCROW),
-
-        KeyletType::Paychan(accid_1, accid_2, num) => {
-            let res = unsafe {
-                c::util_keylet(
-                    write_ptr,
-                    write_len,
-                    c::KEYLET_PAYCHAN,
-                    accid_1.as_ptr() as _,
-                    accid_1.len() as _,
-                    accid_2.as_ptr() as _,
-                    accid_2.len() as _,
-                    num,
-                    0,
-                )
-            };
-
-            res.into()
-        }
-
-        KeyletType::Emitted(key) => buf_read_and_zeroes(keylet, key, c::KEYLET_EMITTED),
-    }
+    init_buffer_mut(func)
 }
