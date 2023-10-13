@@ -12,6 +12,6 @@ This book will walk you through basics as well as how to make the most out of us
 
 ## References
 
-- [hooks-rs crate docs](https://crates.io/crates/hooks-rs)
+- [hooks-rs crate docs](https://docs.rs/hooks-rs/latest/hooks_rs/)
 - [XRPL documentation](https://xrpl.org/docs.html)
 - [Xahau documentation](https://docs.hooks.network/)

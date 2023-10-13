@@ -18,7 +18,7 @@ See [examples](./examples/).
 ## Documentation
 
 - [The book](https://9oelm.github.io/hooks-rs/)
-- [Crate docs](https://crates.io/crates/hooks-rs)
+- [Crate docs](https://docs.rs/hooks-rs/latest/hooks_rs/)
 
 ## Supported functions
 
