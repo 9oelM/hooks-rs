@@ -1,5 +1,7 @@
 # Helper APIs
 
+<!-- toc -->
+
 This page covers the helper APIs that are peculiar to writing hooks.
 
 ## Loops and `max_iter`
