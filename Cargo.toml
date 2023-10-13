@@ -1,6 +1,6 @@
 [package]
 name = "hooks-rs"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2021"
 authors = ["9oelm <messagejoel@outlook.com>"]
 description = "Hooks in Rust for the XRP Ledger"
