@@ -1,5 +1,7 @@
 # Coding in `no_std`
 
+<!-- toc -->
+
 Coding a hook is special, because it gets compiled down to a very restricted WebAssembly.
 
 Therefore, there are certain rules that you need to follow. The overarching rules are as follows:
