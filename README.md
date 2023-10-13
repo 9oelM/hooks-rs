@@ -15,9 +15,10 @@ XRPL hooks in Rust.
 
 See [examples](./examples/).
 
-## Documentation (WIP)
+## Documentation
 
-The book covers very few things for now but you can have a look: https://9oelm.github.io/hooks-rs/
+- [The book](https://9oelm.github.io/hooks-rs/)
+- [Crate docs](https://crates.io/crates/hooks-rs)
 
 ## Supported functions
 
