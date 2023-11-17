@@ -8,6 +8,9 @@ name: "Unused deps"
 jobs:
   udeps:
     runs-on: "ubuntu-latest"
+    defaults:
+      run:
+        working-directory: hooks-rs
     steps:
       - name: "Checkout source code"
         uses: "actions/checkout@v3"
