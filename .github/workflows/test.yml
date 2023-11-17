@@ -11,9 +11,6 @@ jobs:
     timeout-minutes: 30
     name: "Run tests"
     runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        working-directory: hooks-rs
     steps:
       - name: "Checkout source code"
         uses: "actions/checkout@v3"
@@ -84,20 +81,22 @@ jobs:
       - name: "Setup Node.js test environment"
         uses: actions/setup-node@v3
         with:
-          node-version-file: "./tests/.nvmrc"
+          node-version-file: "./hooks-rs/tests/.nvmrc"
           cache: "npm"
-          cache-dependency-path: "tests/package-lock.json"
+          cache-dependency-path: "hooks-rs/tests/package-lock.json"
 
       - name: "Run lib tests"
         run: |
+          cd hooks-rs
           wasm-pack test --node
 
       - name: "Build examples"
         run: |
+          cd hooks-rs
           cargo build --examples
 
       - name: "Run integration tests"
         run: |
-          cd tests
+          cd hooks-rs/tests
           npm ci
           npm test
