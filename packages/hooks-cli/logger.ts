@@ -1,6 +1,5 @@
 import { colors } from "https://deno.land/x/cliffy@v1.0.0-rc.3/ansi/colors.ts";
 
-// Define theme colors.
 export class Logger {
   private static success = colors.bold.green;
   private static error = colors.bold.red;

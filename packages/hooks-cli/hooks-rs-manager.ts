@@ -3,9 +3,10 @@ import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
 import commandExists from "npm:command-exists"
 import * as xrpl from "npm:@transia/xrpl"
 import { TypedObjectKeys } from "./types/utils.ts";
-import { SimplifiedHooksToolkit, iHook } from "./simplified-hooks-toolkit.ts";
+import { SimplifiedHooksToolkit } from "./simplified-hooks-toolkit.ts";
 import { getFeeEstimateXrp } from "npm:@transia/xrpl/dist/npm/sugar/index.js";
 import { Hex } from "./hex.ts";
+import { HookPayload } from "./types/hooks.ts";
 
 export class HooksRsSetup {
   // check inside cargo workplace
@@ -42,7 +43,7 @@ export class HooksRsManager {
     }
   }
 
-  static async buildHook(hookName: string): Promise<iHook> {
+  static async buildHook(hookName: string): Promise<HookPayload> {
     const cargoBuildOutput = await new Deno.Command(`cargo`, { args: [
       "+nightly",
       "build",
@@ -191,7 +192,7 @@ export class HooksRsManager {
     throw new Error(`Could not submit transaction after ${tries} tries`);
   }
 
-  static async setHook(client: xrpl.Client, secret: string, hook: iHook) {
+  static async setHook(client: xrpl.Client, secret: string, hook: HookPayload) {
     const wallet = xrpl.Wallet.fromSecret(secret);
     const tx: xrpl.SetHook = {
       TransactionType: `SetHook`,
