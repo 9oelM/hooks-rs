@@ -14,6 +14,7 @@ export interface PrerequisitesInstallationStatus {
     "hook-cleaner": boolean;
     wasm2wat: boolean;
     guard_checker: boolean;
+    'wasm-pack': boolean;
 }
 
 async function uncompressTarGz(filePath: string, outputDir: string) {
@@ -46,6 +47,7 @@ export async function checkPrerequisitesInstalled() {
     ["hook-cleaner"]: false,
     ["wasm2wat"]: false,
     ["guard_checker"]: false,
+    ["wasm-pack"]: false,
   };
 
   for (const prerequisite of TypedObjectKeys(prerequisitesInstallationStatus)) {
@@ -65,14 +67,18 @@ async function installWasmOpt(
   
 }
 
-async function installHookCleaner(
+async function installCProject(
+  githubRepoUrl: string,
+  githubRepoName: string,
+  resetToHash: string,
+  binaryName: string,
   platform: typeof Deno.build.os,
 ) {
   const tempDirPath = await Deno.makeTempDir();
   Logger.handleOutput(await new Deno.Command(`git`, {
     args: [
       `clone`,
-      `https://github.com/XRPLF/hook-cleaner-c`
+      githubRepoUrl
     ],
     cwd: tempDirPath,
   }).output());
@@ -80,26 +86,46 @@ async function installHookCleaner(
     args: [
       `reset`,
       `--hard`,
-      `b856a3614c00361f108d07379f5892e7347bb994`
+      resetToHash
     ],
-    cwd: path.join(tempDirPath, `hook-cleaner-c`),
+    cwd: path.join(tempDirPath, githubRepoName),
   }).output());
   Logger.handleOutput(await new Deno.Command(`make`, {
-    cwd: path.join(tempDirPath, `hook-cleaner-c`),
+    cwd: path.join(tempDirPath, githubRepoName),
   }).output());
   Logger.handleOutput(await new Deno.Command(`make`, {
-    cwd: path.join(tempDirPath, `hook-cleaner-c`),
+    cwd: path.join(tempDirPath, githubRepoName),
   }).output());
 
   switch (platform) {
     case "windows":
       throw new Error(`Windows is not supported yet.`);
     default: {
-      await Deno.chmod(path.join(tempDirPath, `hook-cleaner-c`, `hook-cleaner`), 0o755);
-      await Deno.rename(path.join(tempDirPath, `hook-cleaner-c`, `hook-cleaner`), `/usr/local/bin/hook-cleaner`);
+      await Deno.chmod(path.join(tempDirPath, githubRepoName, binaryName), 0o755);
+      await Deno.rename(path.join(tempDirPath, githubRepoName, binaryName), `/usr/local/bin/hook-cleaner`);
       break;
     }
   }
+}
+
+async function installHookCleaner() {
+  return await installCProject(
+    `https://github.com/XRPLF/hook-cleaner-c`,
+    `hook-cleaner-c`,
+    `b856a3614c00361f108d07379f5892e7347bb994`,
+    `hook-cleaner`,
+    Deno.build.os,
+  )
+}
+
+async function installGuardChecker() {
+  return await installCProject(
+    `https://github.com/RichardAH/guard-checker`,
+    `guard-checker`,
+    `de69e8aa054d49612dda7046962003beb88c0749`,
+    `guard_checker`,
+    Deno.build.os,
+  )
 }
 
 async function installWasm2wat(
@@ -132,16 +158,9 @@ async function installWasm2wat(
   }
 }
 
-function installGuardChecker(
-  platform: typeof Deno.build.os,
-) {
-
-}
-
 export async function installPrerequisite(
   prerequisite: keyof PrerequisitesInstallationStatus,
 ) {
-  const platform = Deno.build.os;
   const arch = Deno.build.arch;
 
   if (arch === "x86_64") {
@@ -159,13 +178,14 @@ Refer to https://forge.rust-lang.org/infra/other-installation-methods.html for m
       // TODO
       break;
     case "hook-cleaner":
+      await installHookCleaner();
       // TODO
       break;
     case "wasm2wat":
       // TODO
       break;
     case "guard_checker":
-      // TODO
+      await installGuardChecker();
       break;
   }
 }
