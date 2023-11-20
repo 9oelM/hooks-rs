@@ -46,9 +46,9 @@ const cli = await new Command()
   .action(deploy)
   .parse(Deno.args);
 
-// Print help on no arguments.
+// Print help on no arguments or subcommand.
 // Default behavior is to exit without printing anything.
-if (cli.args.length === 0) {
+if (cli.args.length === 0 && cli.cmd.getName() === "hooks") {
   cli.cmd.showHelp();
 }
 
