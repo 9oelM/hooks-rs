@@ -14,7 +14,7 @@ export class Logger {
 
     console.log(color(message));
   }
-  
+
   public static handleOutput(output: Deno.CommandOutput, successOutput = true) {
     if (output.success && !successOutput) {
       console.log(
@@ -27,4 +27,3 @@ export class Logger {
     }
   }
 }
-

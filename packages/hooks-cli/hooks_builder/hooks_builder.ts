@@ -165,7 +165,7 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
   ]);
   outputs.forEach((output) => {
     Logger.handleOutput(output);
-  })
+  });
   const guardCheckerOut = await new Deno.Command(`guard_checker`, {
     args: [
       wasmOutCleaned,

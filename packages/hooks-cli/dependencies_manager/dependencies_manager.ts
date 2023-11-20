@@ -4,42 +4,20 @@ import { TypedObjectKeys } from "../types/utils.ts";
 import commandExists from "npm:command-exists";
 import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
 import { download } from "https://deno.land/x/download@v2.0.2/mod.ts";
-import { Untar } from "https://deno.land/std@0.207.0/archive/untar.ts";
-import { gunzip } from "https://deno.land/x/compress@v0.4.5/zlib/inflate.ts";
 
 export interface PrerequisitesInstallationStatus {
-    git: boolean;
-    cargo: boolean;
-    "wasm-opt": boolean;
-    "hook-cleaner": boolean;
-    wasm2wat: boolean;
-    guard_checker: boolean;
-    'wasm-pack': boolean;
-}
-
-async function uncompressTarGz(filePath: string, outputDir: string) {
-  // const file = await Deno.open(filePath);
-  // const stat = await file.stat();
-  // const buffer = new Uint8Array(stat.size);
-  // const uncompressed = await gunzip(
-  //   buffer
-  // );
-  // const toBeUntarred: ConstructorParameters<typeof Untar>[0] = {
-  //   read(p: Uint8Array): Promise<number | null> {
-  //     // p.uncompressed
-  //   }
-  // };
-  // await new Untar(toBeUntarred);
-  // file.close();
-  // console.log("File uncompressed successfully!");
-}
-
-
-// check inside cargo workplace
-export async function installCargo() {
+  git: boolean;
+  cargo: boolean;
+  "wasm-opt": boolean;
+  "hook-cleaner": boolean;
+  wasm2wat: boolean;
+  guard_checker: boolean;
+  "wasm-pack": boolean;
 }
 
 export async function checkPrerequisitesInstalled() {
+  // Do not change this order, since cargo and git are required for other installations
+  // and Deno runtime will keep the order when Object.keys is called
   const prerequisitesInstallationStatus: PrerequisitesInstallationStatus = {
     git: false,
     cargo: false,
@@ -61,10 +39,17 @@ export async function checkPrerequisitesInstalled() {
   return prerequisitesInstallationStatus;
 }
 
-async function installWasmOpt(
-  platform: typeof Deno.build.os,
-) {
-  
+// To simplify cross-platform installation, we use cargo to install wasm-opt
+async function installWasmOpt() {
+  Logger.handleOutput(
+    await new Deno.Command(`cargo`, {
+      args: [
+        `install`,
+        `wasm-opt`,
+        `--locked`,
+      ],
+    }).output(),
+  );
 }
 
 async function installCProject(
@@ -75,34 +60,43 @@ async function installCProject(
   platform: typeof Deno.build.os,
 ) {
   const tempDirPath = await Deno.makeTempDir();
-  Logger.handleOutput(await new Deno.Command(`git`, {
-    args: [
-      `clone`,
-      githubRepoUrl
-    ],
-    cwd: tempDirPath,
-  }).output());
-  Logger.handleOutput(await new Deno.Command(`git`, {
-    args: [
-      `reset`,
-      `--hard`,
-      resetToHash
-    ],
-    cwd: path.join(tempDirPath, githubRepoName),
-  }).output());
-  Logger.handleOutput(await new Deno.Command(`make`, {
-    cwd: path.join(tempDirPath, githubRepoName),
-  }).output());
-  Logger.handleOutput(await new Deno.Command(`make`, {
-    cwd: path.join(tempDirPath, githubRepoName),
-  }).output());
+  Logger.handleOutput(
+    await new Deno.Command(`git`, {
+      args: [
+        `clone`,
+        githubRepoUrl,
+      ],
+      cwd: tempDirPath,
+    }).output(),
+  );
+  Logger.handleOutput(
+    await new Deno.Command(`git`, {
+      args: [
+        `reset`,
+        `--hard`,
+        resetToHash,
+      ],
+      cwd: path.join(tempDirPath, githubRepoName),
+    }).output(),
+  );
+  Logger.handleOutput(
+    await new Deno.Command(`make`, {
+      cwd: path.join(tempDirPath, githubRepoName),
+    }).output(),
+  );
 
   switch (platform) {
     case "windows":
       throw new Error(`Windows is not supported yet.`);
     default: {
-      await Deno.chmod(path.join(tempDirPath, githubRepoName, binaryName), 0o755);
-      await Deno.rename(path.join(tempDirPath, githubRepoName, binaryName), `/usr/local/bin/hook-cleaner`);
+      await Deno.chmod(
+        path.join(tempDirPath, githubRepoName, binaryName),
+        0o755,
+      );
+      await Deno.rename(
+        path.join(tempDirPath, githubRepoName, binaryName),
+        `/usr/local/bin/${binaryName}`,
+      );
       break;
     }
   }
@@ -115,7 +109,7 @@ async function installHookCleaner() {
     `b856a3614c00361f108d07379f5892e7347bb994`,
     `hook-cleaner`,
     Deno.build.os,
-  )
+  );
 }
 
 async function installGuardChecker() {
@@ -125,10 +119,22 @@ async function installGuardChecker() {
     `de69e8aa054d49612dda7046962003beb88c0749`,
     `guard_checker`,
     Deno.build.os,
-  )
+  );
 }
 
-async function installWasm2wat(
+async function installWasmPack() {
+  Logger.handleOutput(
+    await new Deno.Command(`cargo`, {
+      args: [
+        `install`,
+        `wasm-pack`,
+        `--locked`,
+      ],
+    }).output(),
+  );
+}
+
+async function installWasm2Wat(
   platform: typeof Deno.build.os,
 ) {
   const tempDirPath = await Deno.makeTempDir();
@@ -136,25 +142,59 @@ async function installWasm2wat(
   switch (platform) {
     case "windows":
       throw new Error(`Windows is not supported yet.`);
-    case `darwin`: {
-      // download and save https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-macos-12.tar.gz
-      const downloadedFile = await download("https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-macos-12.tar.gz", {
-        dir: tempDirPath,
-        file: `wabt-1.0.34-macos-12.tar.gz`
-      });
-      // unpack tar.gz
-      Logger.handleOutput(await new Deno.Command(`tar`, {
-        args: [
-          `-xzf`,
-          downloadedFile.fullPath,
-        ],
-        cwd: tempDirPath,
-      }).output());
-      break
-    }
-    default: {
-
-    }
+    default:
+      switch (platform) {
+        case `darwin`: {
+          const downloadedFile = await download(
+            "https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-macos-12.tar.gz",
+            {
+              dir: tempDirPath,
+              file: `wabt-1.0.34-macos-12.tar.gz`,
+            },
+          );
+          Logger.handleOutput(
+            await new Deno.Command(`tar`, {
+              args: [
+                `-xzf`,
+                downloadedFile.fullPath,
+              ],
+            }).output(),
+          );
+          break;
+        }
+        default: {
+          const downloadedFile = await download(
+            // just try ubuntu for now
+            "https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-ubuntu.tar.gz",
+            {
+              dir: tempDirPath,
+              file: `wabt-1.0.34-ubuntu.tar.gz`,
+            },
+          );
+          Logger.handleOutput(
+            await new Deno.Command(`tar`, {
+              args: [
+                `-xzf`,
+                downloadedFile.fullPath,
+              ],
+            }).output(),
+          );
+          break;
+        }
+      }
+      await Deno.chmod(
+        path.join(tempDirPath, `wabt-1.0.34`, `bin`, `wasm2wat`),
+        0o755,
+      );
+      // the whole directory needs to be moved due to include files
+      await Deno.rename(
+        path.join(tempDirPath, `wabt-1.0.34`),
+        `/usr/local/wabt-1.0.34`,
+      );
+      await Deno.symlink(
+        path.join(tempDirPath, `wabt-1.0.34`, `bin`, `wasm2wat`),
+        `/usr/local/bin/wasm2wat`,
+      );
   }
 }
 
@@ -164,28 +204,36 @@ export async function installPrerequisite(
   const arch = Deno.build.arch;
 
   if (arch === "x86_64") {
-    throw new Error(`32 bits architecture is not supported.`)
+    throw new Error(`32 bits architecture is not supported.`);
   }
 
   switch (prerequisite) {
     case "git":
-      throw new Error(`You do not have git installed, but you need to install it manually. 
-Refer to https://git-scm.com/book/en/v2/Getting-Started-Installing-Git for more information.`)
+      throw new Error(
+        `You do not have git installed, but you need to install it manually. 
+Refer to https://git-scm.com/book/en/v2/Getting-Started-Installing-Git for more information.`,
+      );
     case "cargo":
-      throw new Error(`You do not have cargo installed, but you need to install it manually. 
-Refer to https://forge.rust-lang.org/infra/other-installation-methods.html for more information.`)
+      throw new Error(
+        `You do not have cargo installed, but you need to install it manually. 
+Refer to https://forge.rust-lang.org/infra/other-installation-methods.html for more information.`,
+      );
     case "wasm-opt":
-      // TODO
+      await installWasmOpt();
       break;
     case "hook-cleaner":
       await installHookCleaner();
-      // TODO
       break;
     case "wasm2wat":
-      // TODO
+      await installWasm2Wat(Deno.build.os);
       break;
     case "guard_checker":
       await installGuardChecker();
       break;
+    case `wasm-pack`:
+      await installWasmPack();
+      break;
+    default:
+      throw new Error(`Unknown prerequisite ${prerequisite}.`);
   }
 }
