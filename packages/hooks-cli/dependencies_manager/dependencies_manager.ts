@@ -8,6 +8,7 @@ export async function installCargo() {
 
 export async function checkPrerequisitesInstalled() {
   const prerequisitesInstallationStatus = {
+    git: false,
     cargo: false,
     ["wasm-opt"]: false,
     ["hook-cleaner"]: false,

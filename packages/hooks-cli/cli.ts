@@ -56,6 +56,7 @@ async function newProject(_unusedOptions: void, projectName: string) {
   // run git clone
   const tempDirPath = await Deno.makeTempDir();
   const gitCloneTemplateOutput = await new Deno.Command(`git`, {
+    // TODO: only clone subdirectory under hooks-rs repository
     args: [`clone`, `https://github.com/9oelm/hooks-rs`],
     cwd: tempDirPath,
   }).output();
