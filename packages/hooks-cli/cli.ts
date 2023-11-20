@@ -1,10 +1,11 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
-import { HooksRsManager, HooksRsSetup } from "./hooks_rs_manager.ts";
 import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
 import { Logger } from "./misc/logger.ts";
 import { isMinimalCargoToml, readCargoToml } from "./misc/cargo_toml.ts";
 import { TypedObjectKeys } from "./types/utils.ts";
 import { copy } from "https://deno.land/std@0.207.0/fs/copy.ts";
+import { DependenciesManager } from "./dependencies_manager/mod.ts";
+import { HooksBuilder } from "./hooks_builder/mod.ts";
 
 const cli = await new Command()
   .name("hooks")
@@ -14,7 +15,7 @@ const cli = await new Command()
   .description("CLI for hooks-rs")
   .command(
     `new`,
-    `Initializes a new hooks-rs project folder in the current working directory`,
+    `Initializes a new hooks-rs template in a new folder in the current working directory`,
   )
   .arguments("<projectName>")
   .action(newProject)
@@ -93,7 +94,7 @@ async function build() {
   if (isMinimalCargoToml(parsedCargoToml)) {
     const { name } = parsedCargoToml.package;
 
-    await HooksRsManager.buildHook(name);
+    await HooksBuilder.buildHook(name);
     Logger.log(`success`, `Successfully built hook "${name}"`);
   } else {
     Logger.log(
@@ -104,7 +105,7 @@ async function build() {
 }
 
 async function check() {
-  const prerequisitesInstallationStatus = await HooksRsSetup
+  const prerequisitesInstallationStatus = await DependenciesManager
     .checkPrerequisitesInstalled();
 
   let allPrerequisitesInstalled = true;
