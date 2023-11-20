@@ -1,8 +1,8 @@
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
-import { HooksRsManager, HooksRsSetup } from "./hooks-rs-manager.ts";
+import { HooksRsManager, HooksRsSetup } from "./hooks_rs_manager.ts";
 import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
-import { Logger } from "./logger.ts";
-import { isMinimalCargoToml, readCargoToml } from "./cargo.ts";
+import { Logger } from "./misc/logger.ts";
+import { isMinimalCargoToml, readCargoToml } from "./misc/cargo_toml.ts";
 import { TypedObjectKeys } from "./types/utils.ts";
 import { copy } from "https://deno.land/std@0.207.0/fs/copy.ts";
 

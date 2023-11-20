@@ -1,11 +1,11 @@
 import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
-// @deno-types="./types/command-exists.d.ts"
+// @deno-types="./types/command_exists.d.ts"
 import commandExists from "npm:command-exists"
 import * as xrpl from "npm:@transia/xrpl"
 import { TypedObjectKeys } from "./types/utils.ts";
-import { SimplifiedHooksToolkit } from "./simplified-hooks-toolkit.ts";
+import { SimplifiedHooksToolkit } from "./simplified_hooks_toolkit.ts";
 import { getFeeEstimateXrp } from "npm:@transia/xrpl/dist/npm/sugar/index.js";
-import { Hex } from "./hex.ts";
+import { Hex } from "./misc/mod.ts";
 import { HookPayload } from "./types/hooks.ts";
 
 export class HooksRsSetup {

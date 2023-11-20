@@ -1,6 +1,6 @@
 
 import { Sha256 } from "https://deno.land/std@0.119.0/hash/sha256.ts";
-import { Hex } from "./hex.ts";
+import { Hex } from "./misc/mod.ts";
 import { HookParameter, HookGrant, HookPayload } from "./types/hooks.ts";
 
 export class SimplifiedHooksToolkit {
