@@ -1,7 +1,7 @@
 import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
 import * as xrpl from "npm:@transia/xrpl";
 import { getFeeEstimateXrp } from "npm:@transia/xrpl/dist/npm/sugar/index.js";
-import { Hex } from "../misc/mod.ts";
+import { Hex, Logger } from "../misc/mod.ts";
 import { Sha256 } from "https://deno.land/std@0.119.0/hash/sha256.ts";
 import { HookGrant, HookParameter, HookPayload } from "../types/hooks.ts";
 
@@ -62,15 +62,8 @@ function createHookPayload(
   return hook;
 }
 
-function handleOutput(output: Deno.CommandOutput) {
-  if (output.success) {
-    console.log(output.stdout);
-  } else {
-    console.error(output.stderr);
-  }
-}
-
 export async function buildHook(hookName: string): Promise<HookPayload> {
+  Logger.log(`info`, `Building hook "${hookName}"`);
   const cargoBuildOutput = await new Deno.Command(`cargo`, {
     args: [
       "+nightly",
@@ -78,7 +71,7 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
       "--release",
     ],
   }).output();
-  handleOutput(cargoBuildOutput);
+  Logger.handleOutput(cargoBuildOutput);
   const hook = createHookPayload(
     0,
     `${hookName}namespace`,
@@ -113,7 +106,7 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
       ],
     },
   ).output();
-  handleOutput(wasmOptOutput);
+  Logger.handleOutput(wasmOptOutput, false);
   const wasmOutCleaned = path.join(wasmDir, `${hookName}-cleaned.wasm`);
   const hookCleanerOut = await new Deno.Command(
     `hook-cleaner`,
@@ -124,8 +117,8 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
       ],
     },
   ).output();
-  console.log(JSON.stringify(hookCleanerOut, null, 2));
-  await Promise.all([
+  Logger.handleOutput(hookCleanerOut);
+  const outputs = await Promise.all([
     new Deno.Command(
       `wasm2wat`,
       {
@@ -170,12 +163,15 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
       },
     ).output(),
   ]);
+  outputs.forEach((output) => {
+    Logger.handleOutput(output);
+  })
   const guardCheckerOut = await new Deno.Command(`guard_checker`, {
     args: [
       wasmOutCleaned,
     ],
   }).output();
-  handleOutput(guardCheckerOut);
+  Logger.handleOutput(guardCheckerOut);
 
   const wasm = await Deno.readFile(wasmOutCleaned);
   const wasmHex = Hex.uint8ArrayToHexString(wasm).toUpperCase();

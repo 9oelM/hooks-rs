@@ -14,4 +14,17 @@ export class Logger {
 
     console.log(color(message));
   }
+  
+  public static handleOutput(output: Deno.CommandOutput, successOutput = true) {
+    if (output.success && !successOutput) {
+      console.log(
+        new TextDecoder().decode(output.stdout).trim(),
+      );
+    } else {
+      console.error(
+        new TextDecoder().decode(output.stderr).trim(),
+      );
+    }
+  }
 }
+

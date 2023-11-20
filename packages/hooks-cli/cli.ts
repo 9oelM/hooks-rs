@@ -87,7 +87,14 @@ async function newProject(_unusedOptions: void, projectName: string) {
 }
 
 async function up() {
-  // TODO
+  const prerequisitesInstallationStatus = await DependenciesManager
+    .checkPrerequisitesInstalled();
+
+  for (const prerequisite of TypedObjectKeys(prerequisitesInstallationStatus)) {
+    if (!prerequisitesInstallationStatus[prerequisite]) {
+      await DependenciesManager.installPrerequisite(prerequisite);
+    }
+  }
 }
 
 async function build() {
