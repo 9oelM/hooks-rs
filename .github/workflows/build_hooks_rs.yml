@@ -4,11 +4,11 @@ on:
       - "main"
   pull_request:
 
-name: "Lint"
+name: "Build hooks-rs"
 
 jobs:
-  lint:
-    name: "Lints"
+  build:
+    name: "Build Rust source code"
     runs-on: "ubuntu-latest"
     defaults:
       run:
@@ -17,10 +17,10 @@ jobs:
       - name: "Checkout source code"
         uses: "actions/checkout@v3"
 
-      - name: "Use Rust nightly"
+      - name: "Use Rust Nightly"
         uses: "actions-rs/toolchain@v1"
         with:
-          toolchain: nightly
+          toolchain: "nightly"
           profile: "minimal"
           components: "clippy,rustfmt"
           override: true
@@ -34,23 +34,11 @@ jobs:
         run: |
           rustup target add wasm32-unknown-unknown
 
-      - name: "Install prettier"
-        run: |
-          yarn global add prettier@3.0.3
-
       - name: "Install gcc-multilib"
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-multilib
 
-      - name: "Check prettier format"
+      - name: "Build Rust project"
         run: |
-          prettier --ignore-path .gitignore --check .
-
-      - name: "Check Rust format"
-        run: |
-          cargo +nightly fmt --all -- --check
-
-      - name: "Run Clippy lints"
-        run: |
-          cargo +nightly clippy --all -- -D warnings
+          cargo build --target wasm32-unknown-unknown

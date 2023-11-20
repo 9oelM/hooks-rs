@@ -4,23 +4,20 @@ on:
       - "main"
   pull_request:
 
-name: "Build"
+name: "Lint hooks-rs"
 
 jobs:
-  build:
-    name: "Build Rust source code"
+  lint:
+    name: "Lints"
     runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        working-directory: hooks-rs
     steps:
       - name: "Checkout source code"
         uses: "actions/checkout@v3"
 
-      - name: "Use Rust Nightly"
+      - name: "Use Rust nightly"
         uses: "actions-rs/toolchain@v1"
         with:
-          toolchain: "nightly"
+          toolchain: nightly
           profile: "minimal"
           components: "clippy,rustfmt"
           override: true
@@ -34,11 +31,30 @@ jobs:
         run: |
           rustup target add wasm32-unknown-unknown
 
+      - name: "Install prettier"
+        run: |
+          yarn global add prettier@3.0.3
+
       - name: "Install gcc-multilib"
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-multilib
+      
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.38.2
 
-      - name: "Build Rust project"
+      - name: "Check prettier format in hooks-rs"
         run: |
-          cargo build --target wasm32-unknown-unknown
+          cd hooks-rs
+          prettier --ignore-path .gitignore --check .
+
+      - name: "Check Rust format in hooks-rs"
+        run: |
+          cd hooks-rs
+          cargo +nightly fmt --all -- --check
+
+      - name: "Run Clippy lints in hooks-rs"
+        run: |
+          cd hooks-rs
+          cargo +nightly clippy --all -- -D warnings
