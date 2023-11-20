@@ -57,7 +57,6 @@ async function installCProject(
   githubRepoName: string,
   resetToHash: string,
   binaryName: string,
-  platform: typeof Deno.build.os,
 ) {
   const tempDirPath = await Deno.makeTempDir();
   Logger.handleOutput(
@@ -85,7 +84,7 @@ async function installCProject(
     }).output(),
   );
 
-  switch (platform) {
+  switch (Deno.build.os) {
     case "windows":
       throw new Error(`Windows is not supported yet.`);
     default: {
@@ -108,7 +107,6 @@ async function installHookCleaner() {
     `hook-cleaner-c`,
     `b856a3614c00361f108d07379f5892e7347bb994`,
     `hook-cleaner`,
-    Deno.build.os,
   );
 }
 
@@ -118,7 +116,6 @@ async function installGuardChecker() {
     `guard-checker`,
     `de69e8aa054d49612dda7046962003beb88c0749`,
     `guard_checker`,
-    Deno.build.os,
   );
 }
 
@@ -134,16 +131,14 @@ async function installWasmPack() {
   );
 }
 
-async function installWasm2Wat(
-  platform: typeof Deno.build.os,
-) {
+async function installWasm2Wat() {
   const tempDirPath = await Deno.makeTempDir();
 
-  switch (platform) {
+  switch (Deno.build.os) {
     case "windows":
       throw new Error(`Windows is not supported yet.`);
     default:
-      switch (platform) {
+      switch (Deno.build.os) {
         case `darwin`: {
           const downloadedFile = await download(
             "https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-macos-12.tar.gz",
@@ -225,7 +220,7 @@ Refer to https://forge.rust-lang.org/infra/other-installation-methods.html for m
       await installHookCleaner();
       break;
     case "wasm2wat":
-      await installWasm2Wat(Deno.build.os);
+      await installWasm2Wat();
       break;
     case "guard_checker":
       await installGuardChecker();
