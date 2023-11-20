@@ -4,7 +4,7 @@ on:
       - "main"
   pull_request:
 
-name: "Lint"
+name: "Lint hooks-rs"
 
 jobs:
   lint:
@@ -58,13 +58,3 @@ jobs:
         run: |
           cd hooks-rs
           cargo +nightly clippy --all -- -D warnings
-      
-      - name: "Run Deno format in packages/hooks-cli"
-        run: |
-          cd packages/hooks-cli
-          deno fmt --unstable
-
-      - name: "Run Deno lints in packages/hooks-cli"
-        run: |
-          cd packages/hooks-cli
-          deno lint --unstable
