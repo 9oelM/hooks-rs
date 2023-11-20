@@ -6,9 +6,9 @@ interface MinimalCargoToml {
   };
 }
 
-// any is meant to be used because the type of the parsed TOML is not known
-// deno-lint-ignore no-explicit-any
 export function isMinimalCargoToml(
+  // any is meant to be used because the type of the parsed TOML is not known
+  // deno-lint-ignore no-explicit-any
   parsedCargoToml: any,
 ): parsedCargoToml is MinimalCargoToml {
   return `package` in parsedCargoToml &&
