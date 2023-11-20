@@ -4,7 +4,7 @@ on:
       - "main"
   pull_request:
 
-name: "Build"
+name: "Build hooks-rs"
 
 jobs:
   build:
