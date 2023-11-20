@@ -1,4 +1,3 @@
-
 export interface HookParameter {
   /**
    * The object that describes the parameter in HookParameters.
@@ -7,12 +6,12 @@ export interface HookParameter {
     /**
      * The name of the parameter.
      */
-    HookParameterName: string
+    HookParameterName: string;
     /**
      * The value of the parameter.
      */
-    HookParameterValue: string
-  }
+    HookParameterValue: string;
+  };
 }
 
 /**
@@ -26,21 +25,21 @@ export interface HookGrant {
     /**
      * The hook hash of the grant.
      */
-    HookHash: string
+    HookHash: string;
     /**
      * The account authorized on the grant.
      */
-    Authorize?: string
-  }
+    Authorize?: string;
+  };
 }
 
 export type HookPayload = {
   // HookHash?: string
-  CreateCode?: string
-  Flags?: number
-  HookOn?: string
-  HookNamespace?: string
-  HookApiVersion?: number
-  HookParameters?: HookParameter[]
-  HookGrants?: HookGrant[]
-}
+  CreateCode?: string;
+  Flags?: number;
+  HookOn?: string;
+  HookNamespace?: string;
+  HookApiVersion?: number;
+  HookParameters?: HookParameter[];
+  HookGrants?: HookGrant[];
+};

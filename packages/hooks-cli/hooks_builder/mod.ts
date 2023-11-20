@@ -1,3 +1,3 @@
-import * as HooksBuilderImported from './hooks_builder.ts'
+import * as HooksBuilderImported from "./hooks_builder.ts";
 
 export const HooksBuilder = HooksBuilderImported;

@@ -5,10 +5,13 @@ export class Logger {
   private static error = colors.bold.red;
   private static warn = colors.bold.yellow;
   private static info = colors.bold.blue;
-  
-  public static log(level: "success" | "error" | "warn" | "info" = "info", message: string) {
+
+  public static log(
+    level: "success" | "error" | "warn" | "info" = "info",
+    message: string,
+  ) {
     const color = this[level];
-    
+
     console.log(color(message));
   }
 }
