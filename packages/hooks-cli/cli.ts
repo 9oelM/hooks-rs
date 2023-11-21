@@ -45,6 +45,11 @@ export const cli = await new Command()
     `Deploy a built hook to Xahau network`,
   )
   .action(deploy)
+  .command(
+    `uninstall`,
+    `Uninstall all prerequisite binaries installed by 'up' command. WARNING: if you have other projects using the prerequisite binaries or if you have installed the binaries yourself in the past, those binaries will be removed and may cause you problems)`,
+  )
+  .action(uninstall)
   .parse(Deno.args);
 
 // Print help on no arguments or subcommand.
@@ -91,11 +96,18 @@ export async function up() {
   const prerequisitesInstallationStatus = await DependenciesManager
     .checkPrerequisitesInstalled();
 
+  const installations: ReturnType<
+    typeof DependenciesManager.installPrerequisite
+  >[] = [];
   for (const prerequisite of TypedObjectKeys(prerequisitesInstallationStatus)) {
     if (!prerequisitesInstallationStatus[prerequisite]) {
-      await DependenciesManager.installPrerequisite(prerequisite);
+      installations.push(DependenciesManager.installPrerequisite(prerequisite));
     }
   }
+
+  await Promise.all(installations);
+
+  await check();
 }
 
 export async function build() {
@@ -132,7 +144,7 @@ export async function check() {
   } else {
     Logger.log(
       `error`,
-      `Some prerequisites are not installed or not available in PATH.\n Run "hooks up" to install them.`,
+      `Some prerequisites are not installed or not available in PATH.\nRun "hooks up" to install them.`,
     );
   }
 
@@ -141,4 +153,22 @@ export async function check() {
 
 export async function deploy() {
   // TODO
+}
+
+export async function uninstall() {
+  const prerequisitesInstallationStatus = await DependenciesManager
+    .checkPrerequisitesInstalled();
+
+  const uninstallations: ReturnType<
+    typeof DependenciesManager.uninstallPrerequisite
+  >[] = [];
+  for (const prerequisite of TypedObjectKeys(prerequisitesInstallationStatus)) {
+    if (prerequisitesInstallationStatus[prerequisite]) {
+      uninstallations.push(
+        DependenciesManager.uninstallPrerequisite(prerequisite),
+      );
+    }
+  }
+
+  await Promise.all(uninstallations);
 }

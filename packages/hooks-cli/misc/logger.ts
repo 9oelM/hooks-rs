@@ -15,15 +15,33 @@ export class Logger {
     console.log(color(message));
   }
 
-  public static handleOutput(output: Deno.CommandOutput, successOutput = true) {
-    if (output.success && !successOutput) {
-      console.log(
-        new TextDecoder().decode(output.stdout).trim(),
-      );
-    } else {
-      console.error(
-        new TextDecoder().decode(output.stderr).trim(),
-      );
-    }
+  public static async handleOutput(
+    process: Deno.ChildProcess,
+    successOutput = true,
+  ) {
+    if (successOutput) await this.readStream(process.stdout);
+    // Some commands write to stderr even if they succeed,
+    // so we choose a middle ground as warn
+    await this.readStream(process.stderr, `warn`);
+
+    // Wait for the command to complete
+    await process.status;
+  }
+
+  public static async readStream(
+    stream: ReadableStream<Uint8Array>,
+    logLevel: `info` | `warn` = `info`,
+  ): Promise<void> {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let done = false;
+    do {
+      const result = await reader.read();
+      done = result.done;
+
+      if (result.value) {
+        this.log(logLevel, decoder.decode(result.value));
+      }
+    } while (!done);
   }
 }

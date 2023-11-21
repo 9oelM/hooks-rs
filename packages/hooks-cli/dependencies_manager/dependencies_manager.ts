@@ -15,17 +15,21 @@ export interface PrerequisitesInstallationStatus {
   "wasm-pack": boolean;
 }
 
+function checkCargoNightlyInstalled() {
+  // return Deno.env.get(`CARGO_PROFILE_DEV`) === `1`;
+}
+
 export async function checkPrerequisitesInstalled() {
   // Do not change this order, since cargo and git are required for other installations
   // and Deno runtime will keep the order when Object.keys is called
   const prerequisitesInstallationStatus: PrerequisitesInstallationStatus = {
     git: false,
     cargo: false,
-    ["wasm-opt"]: false,
-    ["hook-cleaner"]: false,
-    ["wasm2wat"]: false,
-    ["guard_checker"]: false,
-    ["wasm-pack"]: false,
+    [`wasm-opt`]: false,
+    [`hook-cleaner`]: false,
+    [`wasm2wat`]: false,
+    [`guard_checker`]: false,
+    [`wasm-pack`]: false,
   };
 
   for (const prerequisite of TypedObjectKeys(prerequisitesInstallationStatus)) {
@@ -39,17 +43,85 @@ export async function checkPrerequisitesInstalled() {
   return prerequisitesInstallationStatus;
 }
 
+const BINARYEN_RELEASE_116 =
+  `https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116`;
+const ARM64_MACOS = `arm64-macos`;
+const X86_64_MACOS = `x86_64-macos`;
+const X86_64_LINUX = `x86_64-linux`;
+type BinaryenTarget =
+  | typeof ARM64_MACOS
+  | typeof X86_64_MACOS
+  | typeof X86_64_LINUX;
+
+function createBinaryenDownloadUrl(
+  target: BinaryenTarget,
+): string {
+  return `${BINARYEN_RELEASE_116}-${target}.tar.gz`;
+}
+
 // To simplify cross-platform installation, we use cargo to install wasm-opt
 async function installWasmOpt() {
-  Logger.handleOutput(
-    await new Deno.Command(`cargo`, {
+  const tmpDir = await Deno.makeTempDir();
+
+  let target: BinaryenTarget | null = null;
+  switch (Deno.build.os) {
+    case `windows`: {
+      throw new Error(`Windows is not supported yet.`);
+    }
+    case `darwin`: {
+      switch (Deno.build.arch) {
+        case `x86_64`:
+          target = X86_64_MACOS;
+          break;
+        case `aarch64`:
+          target = ARM64_MACOS;
+          break;
+        default:
+          throw new Error(`Unsupported architecture ${Deno.build.arch}`);
+      }
+      break;
+    }
+    default: {
+      // We just run X86_64_LINUX on all other platforms and architectures
+      target = X86_64_LINUX;
+    }
+  }
+
+  // Should never happen, but for typedef
+  if (!target) {
+    throw new Error(`Could not determine target for wasm-opt installation.`);
+  }
+
+  const downloadUrl = createBinaryenDownloadUrl(target);
+  await download(downloadUrl, {
+    dir: tmpDir,
+    file: `binaryen-version_116`,
+  });
+  await Logger.handleOutput(
+    new Deno.Command(`tar`, {
       args: [
-        `install`,
-        `wasm-opt`,
-        `--locked`,
+        `-xzf`,
+        `binaryen-version_116`,
       ],
-    }).output(),
+      cwd: tmpDir,
+      stderr: `piped`,
+      stdout: `piped`,
+    }).spawn(),
   );
+  await Deno.chmod(
+    path.join(tmpDir, `binaryen-version_116`, `bin`, `wasm-opt`),
+    0o755,
+  );
+  // the whole directory needs to be moved due to include files
+  await Deno.rename(
+    path.join(tmpDir, `binaryen-version_116`),
+    `/usr/local/binaryen-version_116`,
+  );
+  await Deno.symlink(
+    path.join(`/usr/local/binaryen-version_116`, `bin`, `wasm-opt`),
+    `/usr/local/bin/wasm-opt`,
+  );
+  await Deno.remove(tmpDir, { recursive: true });
 }
 
 async function installCProject(
@@ -59,29 +131,35 @@ async function installCProject(
   binaryName: string,
 ) {
   const tempDirPath = await Deno.makeTempDir();
-  Logger.handleOutput(
-    await new Deno.Command(`git`, {
+  await Logger.handleOutput(
+    new Deno.Command(`git`, {
       args: [
         `clone`,
         githubRepoUrl,
       ],
       cwd: tempDirPath,
-    }).output(),
+      stderr: `piped`,
+      stdout: `piped`,
+    }).spawn(),
   );
-  Logger.handleOutput(
-    await new Deno.Command(`git`, {
+  await Logger.handleOutput(
+    new Deno.Command(`git`, {
       args: [
         `reset`,
         `--hard`,
         resetToHash,
       ],
       cwd: path.join(tempDirPath, githubRepoName),
-    }).output(),
+      stderr: `piped`,
+      stdout: `piped`,
+    }).spawn(),
   );
-  Logger.handleOutput(
-    await new Deno.Command(`make`, {
+  await Logger.handleOutput(
+    new Deno.Command(`make`, {
       cwd: path.join(tempDirPath, githubRepoName),
-    }).output(),
+      stderr: `piped`,
+      stdout: `piped`,
+    }).spawn(),
   );
 
   switch (Deno.build.os) {
@@ -99,6 +177,7 @@ async function installCProject(
       break;
     }
   }
+  await Deno.remove(tempDirPath, { recursive: true });
 }
 
 async function installHookCleaner() {
@@ -119,16 +198,24 @@ async function installGuardChecker() {
   );
 }
 
-async function installWasmPack() {
-  Logger.handleOutput(
-    await new Deno.Command(`cargo`, {
-      args: [
-        `install`,
-        `wasm-pack`,
-        `--locked`,
-      ],
-    }).output(),
+export async function installWasmPack() {
+  const tmpDir = await Deno.makeTempDir();
+  await download(
+    `https://rustwasm.github.io/wasm-pack/installer/init.sh`,
+    {
+      dir: tmpDir,
+    },
   );
+  await Logger.handleOutput(
+    new Deno.Command(`sh`, {
+      args: [
+        path.join(tmpDir, `init.sh`),
+      ],
+      stderr: `piped`,
+      stdout: `piped`,
+    }).spawn(),
+  );
+  await Deno.remove(tmpDir, { recursive: true });
 }
 
 async function installWasm2Wat() {
@@ -147,18 +234,20 @@ async function installWasm2Wat() {
               file: `wabt-1.0.34-macos-12.tar.gz`,
             },
           );
-          Logger.handleOutput(
-            await new Deno.Command(`tar`, {
+          await Logger.handleOutput(
+            new Deno.Command(`tar`, {
               args: [
                 `-xzf`,
                 downloadedFile.fullPath,
               ],
-            }).output(),
+              stderr: `piped`,
+              stdout: `piped`,
+            }).spawn(),
           );
           break;
         }
         default: {
-          const downloadedFile = await download(
+          await download(
             // just try ubuntu for now
             "https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-ubuntu.tar.gz",
             {
@@ -166,13 +255,16 @@ async function installWasm2Wat() {
               file: `wabt-1.0.34-ubuntu.tar.gz`,
             },
           );
-          Logger.handleOutput(
-            await new Deno.Command(`tar`, {
+          await Logger.handleOutput(
+            new Deno.Command(`tar`, {
               args: [
                 `-xzf`,
-                downloadedFile.fullPath,
+                `wabt-1.0.34-ubuntu.tar.gz`,
               ],
-            }).output(),
+              cwd: tempDirPath,
+              stderr: `piped`,
+              stdout: `piped`,
+            }).spawn(),
           );
           break;
         }
@@ -187,22 +279,18 @@ async function installWasm2Wat() {
         `/usr/local/wabt-1.0.34`,
       );
       await Deno.symlink(
-        path.join(tempDirPath, `wabt-1.0.34`, `bin`, `wasm2wat`),
+        path.join(`/usr/local/wabt-1.0.34`, `bin`, `wasm2wat`),
         `/usr/local/bin/wasm2wat`,
       );
   }
+  await Deno.remove(tempDirPath, { recursive: true });
 }
 
 export async function installPrerequisite(
   prerequisite: keyof PrerequisitesInstallationStatus,
 ) {
-  const arch = Deno.build.arch;
-
-  if (arch === "x86_64") {
-    throw new Error(`32 bits architecture is not supported.`);
-  }
-
   switch (prerequisite) {
+    // These dependencies are too hard to install automatically
     case "git":
       throw new Error(
         `You do not have git installed, but you need to install it manually. 
@@ -214,21 +302,84 @@ Refer to https://git-scm.com/book/en/v2/Getting-Started-Installing-Git for more 
 Refer to https://forge.rust-lang.org/infra/other-installation-methods.html for more information.`,
       );
     case "wasm-opt":
+      Logger.log(`info`, `Installing wasm-opt`);
       await installWasmOpt();
+      Logger.log(`success`, `Installed wasm-opt`);
       break;
     case "hook-cleaner":
+      Logger.log(`info`, `Installing hook-cleaner`);
       await installHookCleaner();
+      Logger.log(`success`, `Installed hook-cleaner`);
       break;
     case "wasm2wat":
+      Logger.log(`info`, `Installing wasm2wat`);
       await installWasm2Wat();
+      Logger.log(`success`, `Installed wasm2wat`);
       break;
     case "guard_checker":
+      Logger.log(`info`, `Installing guard_checker`);
       await installGuardChecker();
+      Logger.log(`success`, `Installed guard_checker`);
       break;
     case `wasm-pack`:
+      Logger.log(`info`, `Installing wasm-pack`);
       await installWasmPack();
+      Logger.log(`success`, `Installed wasm-pack`);
       break;
     default:
       throw new Error(`Unknown prerequisite ${prerequisite}.`);
+  }
+}
+
+async function uninstallBinary(
+  binaryName: string,
+) {
+  await Deno.remove(`/usr/local/bin/${binaryName}`);
+}
+
+async function uninstallWasmOpt() {
+  await Deno.remove(`/usr/local/binaryen-version_116`, { recursive: true });
+  await uninstallBinary(`wasm-opt`);
+}
+
+async function uninstallWasm2wat() {
+  await Deno.remove(`/usr/local/wabt-1.0.34`, { recursive: true });
+  await uninstallBinary(`wasm2wat`);
+}
+
+export async function uninstallPrerequisite(
+  prerequisite: keyof PrerequisitesInstallationStatus,
+) {
+  switch (prerequisite) {
+    case "wasm-opt":
+      Logger.log(`info`, `Uninstalling wasm-opt`);
+      await uninstallWasmOpt();
+      Logger.log(`success`, `Uninstalled wasm-opt`);
+      break;
+    case "hook-cleaner":
+      Logger.log(`info`, `Uninstalling hook-cleaner`);
+      await uninstallBinary(`hook-cleaner`);
+      Logger.log(`success`, `Uninstalled hook-cleaner`);
+      break;
+    case "wasm2wat":
+      Logger.log(`info`, `Uninstalling wasm2wat`);
+      await uninstallWasm2wat();
+      Logger.log(`success`, `Uninstalled wasm2wat`);
+      break;
+    case "guard_checker":
+      Logger.log(`info`, `Uninstalling guard_checker`);
+      await uninstallBinary(`guard_checker`);
+      Logger.log(`success`, `Uninstalled guard_checker`);
+      break;
+    case `wasm-pack`:
+      // wasm-pack installation location is hard to be known
+      // depending on the machine, so we just leave it for now
+      Logger.log(
+        `warn`,
+        `Note: wasm-pack installation detected. If you want, you need to uninstall wasm-pack yourself.`,
+      );
+      break;
+    default:
+      // Do nothing
   }
 }

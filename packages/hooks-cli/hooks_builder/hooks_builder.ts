@@ -64,14 +64,16 @@ function createHookPayload(
 
 export async function buildHook(hookName: string): Promise<HookPayload> {
   Logger.log(`info`, `Building hook "${hookName}"`);
-  const cargoBuildOutput = await new Deno.Command(`cargo`, {
+  const cargoBuildOutput = new Deno.Command(`cargo`, {
     args: [
       "+nightly",
       "build",
       "--release",
     ],
-  }).output();
-  Logger.handleOutput(cargoBuildOutput);
+    stderr: `piped`,
+    stdout: `piped`,
+  }).spawn();
+  await Logger.handleOutput(cargoBuildOutput);
   const hook = createHookPayload(
     0,
     `${hookName}namespace`,
@@ -92,7 +94,7 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
   // Maximum allowable depth of blocks reached is 16 levels in hooks GuardCheck.
   // Otherwise, the node will not validate the SetHook transaction.
   // Therefore, flatten it using wasm-opt.
-  const wasmOptOutput = await new Deno.Command(
+  const wasmOptOutput = new Deno.Command(
     `wasm-opt`,
     {
       args: [
@@ -104,21 +106,25 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
         `-o`,
         wasmOutFlattened,
       ],
+      stderr: `piped`,
+      stdout: `piped`,
     },
-  ).output();
-  Logger.handleOutput(wasmOptOutput, false);
+  ).spawn();
+  await Logger.handleOutput(wasmOptOutput, false);
   const wasmOutCleaned = path.join(wasmDir, `${hookName}-cleaned.wasm`);
-  const hookCleanerOut = await new Deno.Command(
+  const hookCleanerOut = new Deno.Command(
     `hook-cleaner`,
     {
       args: [
         wasmOutFlattened,
         wasmOutCleaned,
       ],
+      stderr: `piped`,
+      stdout: `piped`,
     },
-  ).output();
-  Logger.handleOutput(hookCleanerOut);
-  const outputs = await Promise.all([
+  ).spawn();
+  await Logger.handleOutput(hookCleanerOut);
+  const outputs = [
     new Deno.Command(
       `wasm2wat`,
       {
@@ -130,8 +136,10 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
             `${hookName}.wat`,
           ),
         ],
+        stderr: `piped`,
+        stdout: `piped`,
       },
-    ).output(),
+    ).spawn(),
     new Deno.Command(
       `wasm2wat`,
       {
@@ -143,15 +151,13 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
             `${hookName}-cleaned.wat`,
           ),
         ],
+        stderr: `piped`,
+        stdout: `piped`,
       },
-    ).output(),
+    ).spawn(),
     new Deno.Command(
       `wasm2wat`,
       {
-        // ${wasmOutFlattened} -o ${path.join(
-        //   debugDir,
-        //   `${hookName}-flattened.wat`,
-        // )}
         args: [
           wasmOutFlattened,
           `-o`,
@@ -160,18 +166,22 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
             `${hookName}-flattened.wat`,
           ),
         ],
+        stderr: `piped`,
+        stdout: `piped`,
       },
-    ).output(),
-  ]);
-  outputs.forEach((output) => {
-    Logger.handleOutput(output);
-  });
-  const guardCheckerOut = await new Deno.Command(`guard_checker`, {
+    ).spawn(),
+  ];
+  await Promise.all(outputs.map((output) => {
+    return Logger.handleOutput(output);
+  }));
+  const guardCheckerOut = new Deno.Command(`guard_checker`, {
     args: [
       wasmOutCleaned,
     ],
-  }).output();
-  Logger.handleOutput(guardCheckerOut);
+    stderr: `piped`,
+    stdout: `piped`,
+  }).spawn();
+  await Logger.handleOutput(guardCheckerOut);
 
   const wasm = await Deno.readFile(wasmOutCleaned);
   const wasmHex = Hex.uint8ArrayToHexString(wasm).toUpperCase();

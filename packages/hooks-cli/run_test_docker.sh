@@ -12,4 +12,4 @@ docker run -it \
   --allow-read \
   --allow-env \
   --allow-sys \
-  /app/tests/install_test.ts
+  /app/tests/*_test.ts
