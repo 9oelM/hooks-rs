@@ -1,0 +1,21 @@
+FROM denoland/deno:ubuntu-1.38.2
+
+EXPOSE 1993
+
+WORKDIR /app
+
+RUN apt-get update
+
+RUN apt-get install -y \
+  build-essential \
+  curl
+RUN apt-get update
+
+# rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+
+# git
+RUN apt-get install -y git
+
+CMD ["deno"]

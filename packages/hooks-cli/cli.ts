@@ -7,7 +7,8 @@ import { copy } from "https://deno.land/std@0.207.0/fs/copy.ts";
 import { DependenciesManager } from "./dependencies_manager/mod.ts";
 import { HooksBuilder } from "./hooks_builder/mod.ts";
 
-const cli = await new Command()
+// Export for testing
+export const cli = await new Command()
   .name("hooks")
   .version("0.0.1")
   .meta(`author`, `https://github.com/9oelm`)
@@ -52,7 +53,7 @@ if (cli.args.length === 0 && cli.cmd.getName() === "hooks") {
   cli.cmd.showHelp();
 }
 
-async function newProject(_unusedOptions: void, projectName: string) {
+export async function newProject(_unusedOptions: void, projectName: string) {
   // run git clone
   const tempDirPath = await Deno.makeTempDir();
   const gitCloneTemplateOutput = await new Deno.Command(`git`, {
@@ -86,7 +87,7 @@ async function newProject(_unusedOptions: void, projectName: string) {
   );
 }
 
-async function up() {
+export async function up() {
   const prerequisitesInstallationStatus = await DependenciesManager
     .checkPrerequisitesInstalled();
 
@@ -97,7 +98,7 @@ async function up() {
   }
 }
 
-async function build() {
+export async function build() {
   const parsedCargoToml = await readCargoToml();
   if (isMinimalCargoToml(parsedCargoToml)) {
     const { name } = parsedCargoToml.package;
@@ -112,7 +113,7 @@ async function build() {
   }
 }
 
-async function check() {
+export async function check() {
   const prerequisitesInstallationStatus = await DependenciesManager
     .checkPrerequisitesInstalled();
 
@@ -131,13 +132,13 @@ async function check() {
   } else {
     Logger.log(
       `error`,
-      `Some prerequisites are not installed or not available in PATH\n. Run "hooks up" to install them.`,
+      `Some prerequisites are not installed or not available in PATH.\n Run "hooks up" to install them.`,
     );
   }
 
   return allPrerequisitesInstalled;
 }
 
-async function deploy() {
+export async function deploy() {
   // TODO
 }
