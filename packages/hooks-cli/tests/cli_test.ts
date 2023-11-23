@@ -33,14 +33,14 @@ Deno.test(`[new] command should create a new template project`, async () => {
 });
 
 Deno.test(`[check] command should return false if not all dependencies are installed`, async () => {
-  const allPrerequisitesInstalled = await check();
-  assert(!allPrerequisitesInstalled);
+  const checksPassing = await check();
+  assert(!checksPassing);
 });
 
 Deno.test(`[up] command should install all missing dependencies`, async () => {
   await up();
-  const allPrerequisitesInstalled = await check();
-  assert(allPrerequisitesInstalled);
+  const checksPassing = await check();
+  assert(checksPassing);
 });
 
 Deno.test(`[uninstall] command should uninstall all dependencies except git, cargo and wasm-pack`, async () => {
@@ -76,8 +76,8 @@ Deno.test(`[up] command should install partially missing dependencies`, async ()
   );
 
   await up();
-  const allPrerequisitesInstalled = await check();
-  assert(allPrerequisitesInstalled);
+  const checksPassing = await check();
+  assert(checksPassing);
 });
 
 Deno.test(`[build] command should build hooks-rs project`, async () => {

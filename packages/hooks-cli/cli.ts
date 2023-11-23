@@ -106,6 +106,14 @@ export async function up() {
   }
 
   await Promise.all(installations);
+  const cargoNightlySelectedAsDefault = await DependenciesManager
+    .checkCargoNightlySelectedAsDefault();
+  if (!cargoNightlySelectedAsDefault) {
+    Logger.log(
+      `error`,
+      `Cargo nightly is not selected as default.\nRun "rustup default nightly" to select it.`,
+    );
+  }
 
   await check();
 }
@@ -148,7 +156,16 @@ export async function check() {
     );
   }
 
-  return allPrerequisitesInstalled;
+  const cargoNightlySelectedAsDefault = await DependenciesManager
+    .checkCargoNightlySelectedAsDefault();
+  if (!cargoNightlySelectedAsDefault) {
+    Logger.log(
+      `error`,
+      `Cargo nightly is not selected as default.\nRun "rustup default nightly" to select it.`,
+    );
+  }
+
+  return allPrerequisitesInstalled && cargoNightlySelectedAsDefault;
 }
 
 export async function deploy() {

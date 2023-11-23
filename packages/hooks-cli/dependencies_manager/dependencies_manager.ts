@@ -5,6 +5,9 @@ import commandExists from "npm:command-exists";
 import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
 import { download } from "https://deno.land/x/download@v2.0.2/mod.ts";
 
+// "cargo 1.75.0-nightly"
+export const CARGO_VERSION_NIGHTLY_REGEX = /cargo\s\d+\.\d+\.\d+-nightly/;
+
 export interface PrerequisitesInstallationStatus {
   git: boolean;
   cargo: boolean;
@@ -15,8 +18,18 @@ export interface PrerequisitesInstallationStatus {
   "wasm-pack": boolean;
 }
 
-function checkCargoNightlyInstalled() {
-  // return Deno.env.get(`CARGO_PROFILE_DEV`) === `1`;
+export async function checkCargoNightlySelectedAsDefault() {
+  const cargoVersionOutput = await new Deno.Command(`cargo`, {
+    args: [
+      `--version`,
+    ],
+  }).output();
+
+  const cargoVersionString = new TextDecoder().decode(
+    cargoVersionOutput.stdout,
+  );
+
+  return CARGO_VERSION_NIGHTLY_REGEX.test(cargoVersionString);
 }
 
 export async function checkPrerequisitesInstalled() {
