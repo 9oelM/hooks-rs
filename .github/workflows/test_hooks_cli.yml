@@ -17,10 +17,12 @@ jobs:
 
       - name: "Build docker image"
         run: |
+          cd packages/hooks-cli
           chmod u+x ./build_docker.sh          
           ./build_docker.sh linux/amd64
 
       - name: "Run tests"
         run: |
+          cd packages/hooks-cli
           chmod u+x ./run_test_docker.sh
           ./run_test_docker.sh
