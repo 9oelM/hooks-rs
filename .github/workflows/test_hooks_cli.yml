@@ -1,0 +1,28 @@
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+name: "Test hooks-cli"
+
+jobs:
+  test:
+    timeout-minutes: 30
+    name: "Run tests"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout source code"
+        uses: "actions/checkout@v3"
+
+      - name: "Build docker image"
+        run: |
+          cd packages/hooks-cli
+          chmod u+x ./build_docker.sh          
+          ./build_docker.sh linux/amd64
+
+      - name: "Run tests"
+        run: |
+          cd packages/hooks-cli
+          chmod u+x ./run_test_docker.sh
+          ./run_test_docker.sh

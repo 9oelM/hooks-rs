@@ -1,7 +1,7 @@
 import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
 import * as xrpl from "npm:@transia/xrpl";
 import { getFeeEstimateXrp } from "npm:@transia/xrpl/dist/npm/sugar/index.js";
-import { Hex } from "../misc/mod.ts";
+import { Hex, Logger } from "../misc/mod.ts";
 import { Sha256 } from "https://deno.land/std@0.119.0/hash/sha256.ts";
 import { HookGrant, HookParameter, HookPayload } from "../types/hooks.ts";
 
@@ -62,23 +62,18 @@ function createHookPayload(
   return hook;
 }
 
-function handleOutput(output: Deno.CommandOutput) {
-  if (output.success) {
-    console.log(output.stdout);
-  } else {
-    console.error(output.stderr);
-  }
-}
-
 export async function buildHook(hookName: string): Promise<HookPayload> {
-  const cargoBuildOutput = await new Deno.Command(`cargo`, {
+  Logger.log(`info`, `Building hook "${hookName}"`);
+  const cargoBuildOutput = new Deno.Command(`cargo`, {
     args: [
       "+nightly",
       "build",
       "--release",
     ],
-  }).output();
-  handleOutput(cargoBuildOutput);
+    stderr: `piped`,
+    stdout: `piped`,
+  }).spawn();
+  await Logger.handleOutput(cargoBuildOutput);
   const hook = createHookPayload(
     0,
     `${hookName}namespace`,
@@ -99,7 +94,7 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
   // Maximum allowable depth of blocks reached is 16 levels in hooks GuardCheck.
   // Otherwise, the node will not validate the SetHook transaction.
   // Therefore, flatten it using wasm-opt.
-  const wasmOptOutput = await new Deno.Command(
+  const wasmOptOutput = new Deno.Command(
     `wasm-opt`,
     {
       args: [
@@ -111,21 +106,25 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
         `-o`,
         wasmOutFlattened,
       ],
+      stderr: `piped`,
+      stdout: `piped`,
     },
-  ).output();
-  handleOutput(wasmOptOutput);
+  ).spawn();
+  await Logger.handleOutput(wasmOptOutput, false);
   const wasmOutCleaned = path.join(wasmDir, `${hookName}-cleaned.wasm`);
-  const hookCleanerOut = await new Deno.Command(
+  const hookCleanerOut = new Deno.Command(
     `hook-cleaner`,
     {
       args: [
         wasmOutFlattened,
         wasmOutCleaned,
       ],
+      stderr: `piped`,
+      stdout: `piped`,
     },
-  ).output();
-  console.log(JSON.stringify(hookCleanerOut, null, 2));
-  await Promise.all([
+  ).spawn();
+  await Logger.handleOutput(hookCleanerOut);
+  const outputs = [
     new Deno.Command(
       `wasm2wat`,
       {
@@ -137,8 +136,10 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
             `${hookName}.wat`,
           ),
         ],
+        stderr: `piped`,
+        stdout: `piped`,
       },
-    ).output(),
+    ).spawn(),
     new Deno.Command(
       `wasm2wat`,
       {
@@ -150,15 +151,13 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
             `${hookName}-cleaned.wat`,
           ),
         ],
+        stderr: `piped`,
+        stdout: `piped`,
       },
-    ).output(),
+    ).spawn(),
     new Deno.Command(
       `wasm2wat`,
       {
-        // ${wasmOutFlattened} -o ${path.join(
-        //   debugDir,
-        //   `${hookName}-flattened.wat`,
-        // )}
         args: [
           wasmOutFlattened,
           `-o`,
@@ -167,15 +166,22 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
             `${hookName}-flattened.wat`,
           ),
         ],
+        stderr: `piped`,
+        stdout: `piped`,
       },
-    ).output(),
-  ]);
-  const guardCheckerOut = await new Deno.Command(`guard_checker`, {
+    ).spawn(),
+  ];
+  await Promise.all(outputs.map((proc) => {
+    return Logger.handleOutput(proc);
+  }));
+  const guardCheckerOut = new Deno.Command(`guard_checker`, {
     args: [
       wasmOutCleaned,
     ],
-  }).output();
-  handleOutput(guardCheckerOut);
+    stderr: `piped`,
+    stdout: `piped`,
+  }).spawn();
+  await Logger.handleOutput(guardCheckerOut);
 
   const wasm = await Deno.readFile(wasmOutCleaned);
   const wasmHex = Hex.uint8ArrayToHexString(wasm).toUpperCase();

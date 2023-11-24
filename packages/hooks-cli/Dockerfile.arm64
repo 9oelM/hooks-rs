@@ -1,0 +1,36 @@
+FROM lukechannings/deno:v1.38.2
+
+ENV DEBIAN_FRONTEND=noninteractive 
+ENV TZ="America/New_York"
+
+EXPOSE 1993
+
+WORKDIR /app
+
+RUN apt-get update
+
+RUN apt-get install -y \
+  build-essential \
+  curl \
+  bash \
+  software-properties-common
+RUN apt-get update
+
+# rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup default nightly
+RUN rustup target add wasm32-unknown-unknown
+
+# clang
+RUN apt-get install -y llvm-dev libclang-dev clang
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
+RUN apt-get update
+RUN apt-get install -y gcc-9
+RUN apt-get install -y libstdc++6
+
+# git
+RUN apt-get install -y git
+
+CMD ["deno"]

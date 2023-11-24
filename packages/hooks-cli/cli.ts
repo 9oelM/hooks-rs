@@ -7,7 +7,8 @@ import { copy } from "https://deno.land/std@0.207.0/fs/copy.ts";
 import { DependenciesManager } from "./dependencies_manager/mod.ts";
 import { HooksBuilder } from "./hooks_builder/mod.ts";
 
-const cli = await new Command()
+// Export for testing
+export const cli = await new Command()
   .name("hooks")
   .version("0.0.1")
   .meta(`author`, `https://github.com/9oelm`)
@@ -44,15 +45,20 @@ const cli = await new Command()
     `Deploy a built hook to Xahau network`,
   )
   .action(deploy)
+  .command(
+    `uninstall`,
+    `Uninstall all prerequisite binaries installed by 'up' command. WARNING: if you have other projects using the prerequisite binaries or if you have installed the binaries yourself in the past, those binaries will be removed and may cause you problems)`,
+  )
+  .action(uninstall)
   .parse(Deno.args);
 
-// Print help on no arguments.
+// Print help on no arguments or subcommand.
 // Default behavior is to exit without printing anything.
-if (cli.args.length === 0) {
+if (cli.args.length === 0 && cli.cmd.getName() === "hooks") {
   cli.cmd.showHelp();
 }
 
-async function newProject(_unusedOptions: void, projectName: string) {
+export async function newProject(_unusedOptions: void, projectName: string) {
   // run git clone
   const tempDirPath = await Deno.makeTempDir();
   const gitCloneTemplateOutput = await new Deno.Command(`git`, {
@@ -86,17 +92,54 @@ async function newProject(_unusedOptions: void, projectName: string) {
   );
 }
 
-async function up() {
-  // TODO
+export async function up() {
+  const prerequisitesInstallationStatus = await DependenciesManager
+    .checkPrerequisitesInstalled();
+
+  const installations: ReturnType<
+    typeof DependenciesManager.installPrerequisite
+  >[] = [];
+  for (const prerequisite of TypedObjectKeys(prerequisitesInstallationStatus)) {
+    if (!prerequisitesInstallationStatus[prerequisite]) {
+      installations.push(DependenciesManager.installPrerequisite(prerequisite));
+    }
+  }
+
+  await Promise.all(installations);
+  const cargoNightlySelectedAsDefault = await DependenciesManager
+    .checkCargoNightlySelectedAsDefault();
+  if (prerequisitesInstallationStatus.cargo && !cargoNightlySelectedAsDefault) {
+    Logger.log(
+      `error`,
+      `Cargo nightly is not selected as default.\nRun "rustup default nightly" to select it.`,
+    );
+  }
+
+  const wasm32UnknownUnknownTargetInstalled = await DependenciesManager
+    .checkRustupWasm32UnknownUnknownInstalled();
+
+  if (
+    prerequisitesInstallationStatus.cargo &&
+    !wasm32UnknownUnknownTargetInstalled
+  ) {
+    Logger.log(
+      `error`,
+      `wasm32-unknown-unknown target is not installed.\nRun "rustup target add wasm32-unknown-unknown" to install it.`,
+    );
+  }
+
+  await check();
 }
 
-async function build() {
+export async function build() {
   const parsedCargoToml = await readCargoToml();
   if (isMinimalCargoToml(parsedCargoToml)) {
     const { name } = parsedCargoToml.package;
 
-    await HooksBuilder.buildHook(name);
+    const hookPayload = await HooksBuilder.buildHook(name);
     Logger.log(`success`, `Successfully built hook "${name}"`);
+
+    return hookPayload;
   } else {
     Logger.log(
       `error`,
@@ -105,7 +148,7 @@ async function build() {
   }
 }
 
-async function check() {
+export async function check() {
   const prerequisitesInstallationStatus = await DependenciesManager
     .checkPrerequisitesInstalled();
 
@@ -124,13 +167,53 @@ async function check() {
   } else {
     Logger.log(
       `error`,
-      `Some prerequisites are not installed or not available in PATH\n. Run "hooks up" to install them.`,
+      `Some prerequisites are not installed or not available in PATH.\nRun "hooks up" to install them.`,
     );
   }
 
-  return allPrerequisitesInstalled;
+  const cargoNightlySelectedAsDefault = await DependenciesManager
+    .checkCargoNightlySelectedAsDefault();
+  if (prerequisitesInstallationStatus.cargo && !cargoNightlySelectedAsDefault) {
+    Logger.log(
+      `error`,
+      `Cargo nightly is not selected as default.\nRun "rustup default nightly" to select it.`,
+    );
+  }
+  const wasm32UnknownUnknownTargetInstalled = await DependenciesManager
+    .checkRustupWasm32UnknownUnknownInstalled();
+
+  if (
+    prerequisitesInstallationStatus.cargo &&
+    !wasm32UnknownUnknownTargetInstalled
+  ) {
+    Logger.log(
+      `error`,
+      `wasm32-unknown-unknown target is not installed.\nRun "rustup target add wasm32-unknown-unknown" to install it.`,
+    );
+  }
+
+  return allPrerequisitesInstalled && cargoNightlySelectedAsDefault &&
+    wasm32UnknownUnknownTargetInstalled;
 }
 
-async function deploy() {
+export async function deploy() {
   // TODO
+}
+
+export async function uninstall() {
+  const prerequisitesInstallationStatus = await DependenciesManager
+    .checkPrerequisitesInstalled();
+
+  const uninstallations: ReturnType<
+    typeof DependenciesManager.uninstallPrerequisite
+  >[] = [];
+  for (const prerequisite of TypedObjectKeys(prerequisitesInstallationStatus)) {
+    if (prerequisitesInstallationStatus[prerequisite]) {
+      uninstallations.push(
+        DependenciesManager.uninstallPrerequisite(prerequisite),
+      );
+    }
+  }
+
+  await Promise.all(uninstallations);
 }
