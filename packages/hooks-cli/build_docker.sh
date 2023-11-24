@@ -1,6 +1,17 @@
 #!/bin/sh
 
-docker buildx create --bootstrap --use --name builder
+# usage: ./build_docker.sh <platform>
 
-docker build --platform linux/arm64/v8 -t hooks-cli-test:latest -f Dockerfile.arm64 .
-# docker build --platform linux/amd64 -t hooks-cli-test:latest .
+PLATFORM="$1"
+DOCKERFILE_POSTFIX=""
+
+if [ "$PLATFORM" == "linux/arm64/v8" ]; then
+    DOCKERFILE_POSTFIX="arm64"
+elif [ "$PLATFORM" == "linux/amd64" ]; then
+    DOCKERFILE_POSTFIX="amd64"
+else
+    echo "Unsupported platform: $PLATFORM"
+    exit 1
+fi
+
+docker build --platform "${PLATFORM}" -t hooks-cli:latest -f "Dockerfile.${DOCKERFILE_POSTFIX}" .

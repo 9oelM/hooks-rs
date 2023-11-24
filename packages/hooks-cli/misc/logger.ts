@@ -26,6 +26,8 @@ export class Logger {
 
     // Wait for the command to complete
     await process.status;
+    // await process.stdout.cancel();
+    // await process.stderr.cancel();
   }
 
   public static async readStream(

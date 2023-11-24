@@ -32,6 +32,24 @@ export async function checkCargoNightlySelectedAsDefault() {
   return CARGO_VERSION_NIGHTLY_REGEX.test(cargoVersionString);
 }
 
+export async function checkRustupWasm32UnknownUnknownInstalled() {
+  // rustup target list --installed
+  const rustupTargetListOutput = await new Deno.Command(`rustup`, {
+    args: [
+      `target`,
+      `list`,
+      `--installed`,
+    ],
+  }).output();
+
+  const decoder = new TextDecoder();
+  const rustupTargetListString = decoder.decode(
+    rustupTargetListOutput.stdout,
+  );
+
+  return rustupTargetListString.includes(`wasm32-unknown-unknown`);
+}
+
 export async function checkPrerequisitesInstalled() {
   // Do not change this order, since cargo and git are required for other installations
   // and Deno runtime will keep the order when Object.keys is called

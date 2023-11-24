@@ -108,10 +108,23 @@ export async function up() {
   await Promise.all(installations);
   const cargoNightlySelectedAsDefault = await DependenciesManager
     .checkCargoNightlySelectedAsDefault();
-  if (!cargoNightlySelectedAsDefault) {
+  if (prerequisitesInstallationStatus.cargo && !cargoNightlySelectedAsDefault) {
     Logger.log(
       `error`,
       `Cargo nightly is not selected as default.\nRun "rustup default nightly" to select it.`,
+    );
+  }
+
+  const wasm32UnknownUnknownTargetInstalled = await DependenciesManager
+    .checkRustupWasm32UnknownUnknownInstalled();
+
+  if (
+    prerequisitesInstallationStatus.cargo &&
+    !wasm32UnknownUnknownTargetInstalled
+  ) {
+    Logger.log(
+      `error`,
+      `wasm32-unknown-unknown target is not installed.\nRun "rustup target add wasm32-unknown-unknown" to install it.`,
     );
   }
 
@@ -158,14 +171,27 @@ export async function check() {
 
   const cargoNightlySelectedAsDefault = await DependenciesManager
     .checkCargoNightlySelectedAsDefault();
-  if (!cargoNightlySelectedAsDefault) {
+  if (prerequisitesInstallationStatus.cargo && !cargoNightlySelectedAsDefault) {
     Logger.log(
       `error`,
       `Cargo nightly is not selected as default.\nRun "rustup default nightly" to select it.`,
     );
   }
+  const wasm32UnknownUnknownTargetInstalled = await DependenciesManager
+    .checkRustupWasm32UnknownUnknownInstalled();
 
-  return allPrerequisitesInstalled && cargoNightlySelectedAsDefault;
+  if (
+    prerequisitesInstallationStatus.cargo &&
+    !wasm32UnknownUnknownTargetInstalled
+  ) {
+    Logger.log(
+      `error`,
+      `wasm32-unknown-unknown target is not installed.\nRun "rustup target add wasm32-unknown-unknown" to install it.`,
+    );
+  }
+
+  return allPrerequisitesInstalled && cargoNightlySelectedAsDefault &&
+    wasm32UnknownUnknownTargetInstalled;
 }
 
 export async function deploy() {
