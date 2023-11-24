@@ -15,28 +15,12 @@ jobs:
       - name: "Checkout source code"
         uses: "actions/checkout@v3"
 
-      - name: "Use Rust nightly"
-        uses: "actions-rs/toolchain@v1"
-        with:
-          toolchain: nightly
-          profile: "minimal"
-          components: "clippy,rustfmt"
-          override: true
-
-      - name: "Use Rust cache"
-        uses: "Swatinem/rust-cache@v2"
-        with:
-          cache-on-failure: true
-
-      - name: "Add wasm32-unknown-unknown target"
+      - name: "Build docker image"
         run: |
-          rustup target add wasm32-unknown-unknown
+          chmod u+x ./build_docker.sh          
+          ./build_docker.sh linux/amd64
 
-      - uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.38.2
-
-      - name: "Run Deno tests"
+      - name: "Run tests"
         run: |
-          cd packages/hooks-cli/tests
-          deno test tests/install_test.ts
+          chmod u+x ./run_test_docker.sh
+          ./run_test_docker.sh

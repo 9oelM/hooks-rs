@@ -19,19 +19,19 @@ jobs:
           deno-version: v1.38.2
 
       - name: "Install dependencies"
-        run: | 
+        run: |
           cd packages/hooks-cli
           deno cache --unstable cli.ts
-      
+
       - name: "Compile"
-        run: | 
+        run: |
           cd packages/hooks-cli
           mkdir artifacts
           deno compile --target aarch64-apple-darwin --output artifacts/hooks-cli-aarch64-apple-darwin cli.ts
           deno compile --target x86_64-apple-darwin --output artifacts/hooks-cli-x86_64-apple-darwin cli.ts
           deno compile --target x86_64-pc-windows-msvc --output artifacts/hooks-cli-x86_64-pc-windows-msvc cli.ts 
           deno compile --target x86_64-unknown-linux-gnu --output artifacts/hooks-cli-x86_64-unknown-linux-gnu cli.ts
-      
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
