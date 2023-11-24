@@ -1,6 +1,6 @@
 #!/bin/sh
 
-docker run -it \
+docker run \
   --init \
   -p 1993:1993 \
   -v $PWD:/app \
