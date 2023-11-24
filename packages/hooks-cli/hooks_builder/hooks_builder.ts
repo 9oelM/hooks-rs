@@ -171,8 +171,8 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
       },
     ).spawn(),
   ];
-  await Promise.all(outputs.map((output) => {
-    return Logger.handleOutput(output);
+  await Promise.all(outputs.map((proc) => {
+    return Logger.handleOutput(proc);
   }));
   const guardCheckerOut = new Deno.Command(`guard_checker`, {
     args: [

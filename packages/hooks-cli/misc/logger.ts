@@ -19,15 +19,25 @@ export class Logger {
     process: Deno.ChildProcess,
     successOutput = true,
   ) {
-    if (successOutput) await this.readStream(process.stdout);
+    if (successOutput) {
+      await this.readStream(process.stdout);
+    } else {
+      await process.stdout.cancel();
+    }
     // Some commands write to stderr even if they succeed,
     // so we choose a middle ground as warn
     await this.readStream(process.stderr, `warn`);
 
     // Wait for the command to complete
     await process.status;
-    // await process.stdout.cancel();
-    // await process.stderr.cancel();
+
+    // TODO: idk wth is going on here
+    if (!process.stdout.locked) {
+      await process.stdout.cancel();
+    }
+    if (!process.stderr.locked) {
+      await process.stderr.cancel();
+    }
   }
 
   public static async readStream(
@@ -45,5 +55,6 @@ export class Logger {
         this.log(logLevel, decoder.decode(result.value));
       }
     } while (!done);
+    await reader.cancel();
   }
 }

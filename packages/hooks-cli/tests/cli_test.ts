@@ -101,8 +101,4 @@ Deno.test(`[build] command should build hooks-rs project`, async () => {
   Deno.chdir(templateProjectPath);
 
   await build();
-
-  await Deno.remove(templateProjectPath, {
-    recursive: true,
-  });
 });

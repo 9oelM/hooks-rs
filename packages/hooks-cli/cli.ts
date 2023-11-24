@@ -136,8 +136,10 @@ export async function build() {
   if (isMinimalCargoToml(parsedCargoToml)) {
     const { name } = parsedCargoToml.package;
 
-    await HooksBuilder.buildHook(name);
+    const hookPayload = await HooksBuilder.buildHook(name);
     Logger.log(`success`, `Successfully built hook "${name}"`);
+
+    return hookPayload;
   } else {
     Logger.log(
       `error`,
