@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # usage: ./build_docker.sh <platform>
 
