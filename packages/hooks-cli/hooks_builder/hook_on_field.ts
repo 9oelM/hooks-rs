@@ -20,7 +20,7 @@ export class HookOnField {
   }
 
   // TODO: validate input hex string
-  public from_hex(hex: string): void {
+  public fromHex(hex: string): HookOnField {
     if (this.initialized) {
       throw new Error("HookOnField already initialized");
     }
@@ -35,11 +35,13 @@ export class HookOnField {
       );
     }
 
-    this.hookOn = BigInt(`0x${hex}`);
+    this.hookOn = BigInt(withPreceding0x);
     this.initialized = true;
+
+    return this;
   }
 
-  public from_list(list: (keyof typeof XrplTransactionType)[]): void {
+  public fromSet(list: Set<keyof typeof XrplTransactionType>): HookOnField {
     if (this.initialized) {
       throw new Error("HookOnField already initialized");
     }
@@ -48,28 +50,32 @@ export class HookOnField {
       this.xor(transactionType);
     }
     this.initialized = true;
+
+    return this;
   }
 
   /**
    * HookOnField is initialized to the default value
    */
-  public from_empty(): void {
+  public fromEmpty(): HookOnField {
     if (this.initialized) {
       throw new Error("HookOnField already initialized");
     }
 
     this.initialized = true;
+
+    return this;
   }
 
-  public to_hex(): string {
+  public toHex(): string {
     if (!this.initialized) {
       throw new Error("HookOnField not initialized");
     }
 
-    return this.hookOn.toString(16);
+    return `0x${this.hookOn.toString(16)}`;
   }
 
-  public to_list(): (keyof typeof XrplTransactionType)[] {
+  public toList(): (keyof typeof XrplTransactionType)[] {
     if (!this.initialized) {
       throw new Error("HookOnField not initialized");
     }
@@ -78,7 +84,7 @@ export class HookOnField {
 
     for (const transactionType of TypedObjectKeys(XrplTransactionType)) {
       if (this.hookOn & (1n << BigInt(XrplTransactionType[transactionType]))) {
-        list.push(transactionType as keyof typeof XrplTransactionType);
+        list.push(transactionType);
       }
     }
 
