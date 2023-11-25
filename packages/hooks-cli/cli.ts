@@ -44,6 +44,7 @@ export const cli = await new Command()
     `deploy`,
     `Deploy a built hook to Xahau network`,
   )
+  .arguments(`[rpc: number] [hookOn: string]`)
   .action(deploy)
   .command(
     `uninstall`,
@@ -196,8 +197,7 @@ export async function check() {
     wasm32UnknownUnknownTargetInstalled;
 }
 
-export async function deploy() {
-  // TODO
+export async function deploy(rpc?: string, hookOn?: string) {
 }
 
 export async function uninstall() {
