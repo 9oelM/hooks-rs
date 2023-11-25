@@ -39,3 +39,9 @@ export const XrplTransactionType = Object.freeze(
     EMIT_FAILURE: 103,
   } as const,
 );
+
+export function isXrplTransactionType(
+  transactionType: string,
+): transactionType is keyof typeof XrplTransactionType {
+  return transactionType in XrplTransactionType;
+}
