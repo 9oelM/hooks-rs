@@ -12,6 +12,7 @@ import {
 } from "./hooks_builder/mod.ts";
 import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
+import { Account } from "./account/mod.ts";
 
 // Export for testing
 export const cli = await new Command()
@@ -36,6 +37,64 @@ export const cli = await new Command()
     "Checks if all prerequisite binaries are installed and available in PATH",
   )
   .action(check)
+  .command(
+    "account",
+  )
+  .option("--new <new:boolean>", "Create a new account stored in JSON file", {
+    default: true,
+    conflicts: ["--from-secret"],
+  })
+  .option(
+    "--testnet <testnet:boolean>",
+    "Create a pre-funded testnet account (used with --new option)",
+    {
+      default: true,
+      conflicts: ["--from-secret"],
+    },
+  )
+  .option(
+    "--from-secret <fromSecret:boolean>",
+    "Derive an account from an existing secret",
+    {
+      default: false,
+      conflicts: ["--new", "--testnet"],
+    },
+  )
+  .action(({
+    new: newAccount,
+    testnet,
+    fromSecret,
+  }) => {
+    if (newAccount && fromSecret) {
+      Logger.log(
+        `error`,
+        `Cannot use --new with --from-secret`,
+      );
+      Deno.exit(1);
+    }
+
+    if (!newAccount && !fromSecret) {
+      Logger.log(
+        `error`,
+        `Must specify either --new or --from-secret`,
+      );
+      Deno.exit(1);
+    }
+
+    if (testnet && fromSecret) {
+      Logger.log(
+        `error`,
+        `Cannot use --testnet with --from-secret`,
+      );
+      Deno.exit(1);
+    }
+
+    if (newAccount) {
+      Account.create(testnet);
+    } else if (fromSecret) {
+      Account.derive();
+    }
+  })
   .command(
     "build",
     "Compile and preprocess a hook",
@@ -221,6 +280,9 @@ export async function check() {
     wasm32UnknownUnknownTargetInstalled;
 }
 
+export function account() {
+}
+
 /**
  * @throws Error if invalid options are supplied
  */
@@ -282,10 +344,4 @@ export async function uninstall() {
   }
 
   await Promise.all(uninstallations);
-}
-
-export async function accountTestnetCreate() {
-}
-
-export async function accountTemplateCreate() {
 }

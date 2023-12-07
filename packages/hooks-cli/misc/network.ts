@@ -3,8 +3,8 @@ export enum Network {
   XahauMainnet = "XAHAU_MAINNET",
 }
 
-const TESTNET_RPC_URL = "wss://xahau-test.net";
-const MAINNET_RPC_URL = "wss://xahau.network";
+const TESTNET_RPC_URL = "https://xahau-test.net";
+const MAINNET_RPC_URL = "https://xahau.network";
 
 export function getRpcUrl(network: Network) {
   switch (network) {
