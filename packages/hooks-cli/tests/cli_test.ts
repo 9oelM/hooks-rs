@@ -33,6 +33,7 @@ Deno.test(`[new] command should create a new template project`, async () => {
 });
 
 Deno.test(`[check] command should return false if not all dependencies are installed`, async () => {
+  await uninstall();
   const checksPassing = await check();
   assert(!checksPassing);
 });
@@ -57,9 +58,9 @@ Deno.test(`[uninstall] command should uninstall all dependencies except git, car
   Object.entries(prerequisitesInstallationStatus).forEach(
     ([prerequisiteName, isInstalled]) => {
       if (shouldBeInstalled.has(prerequisiteName)) {
-        assert(isInstalled);
+        assert(isInstalled, `${prerequisiteName} is not installed`);
       } else {
-        assert(!isInstalled);
+        assert(!isInstalled, `${prerequisiteName} is installed`);
       }
     },
   );

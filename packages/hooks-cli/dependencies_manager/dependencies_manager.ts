@@ -4,6 +4,7 @@ import { TypedObjectKeys } from "../types/utils.ts";
 import commandExists from "npm:command-exists";
 import * as path from "jsr:@std/path";
 import { download } from "https://deno.land/x/download@v2.0.2/mod.ts";
+import { pathExists } from "../misc/utils.ts";
 
 // "cargo 1.75.0-nightly"
 export const CARGO_VERSION_NIGHTLY_REGEX = /cargo\s\d+\.\d+\.\d+-nightly/;
@@ -74,8 +75,11 @@ export async function checkPrerequisitesInstalled() {
   return prerequisitesInstallationStatus;
 }
 
-const BINARYEN_RELEASE_116 =
-  `https://github.com/WebAssembly/binaryen/releases/download/version_116/binaryen-version_116`;
+export const BINARYEN_VERSION_NUM = `121`
+export const BINARYEN_VERSION_STR = `binaryen_version_${BINARYEN_VERSION_NUM}`
+export const BINARYEN_VERSION_DIR = `binaryen-version_${BINARYEN_VERSION_NUM}`
+const BINARYEN_RELEASE_121 =
+  `https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION_NUM}/binaryen-version_${BINARYEN_VERSION_NUM}`;
 const ARM64_MACOS = `arm64-macos`;
 const X86_64_MACOS = `x86_64-macos`;
 const X86_64_LINUX = `x86_64-linux`;
@@ -87,7 +91,7 @@ type BinaryenTarget =
 function createBinaryenDownloadUrl(
   target: BinaryenTarget,
 ): string {
-  return `${BINARYEN_RELEASE_116}-${target}.tar.gz`;
+  return `${BINARYEN_RELEASE_121}-${target}.tar.gz`;
 }
 
 // To simplify cross-platform installation, we use cargo to install wasm-opt
@@ -126,13 +130,13 @@ async function installWasmOpt() {
   const downloadUrl = createBinaryenDownloadUrl(target);
   await download(downloadUrl, {
     dir: tmpDir,
-    file: `binaryen-version_116`,
+    file: BINARYEN_VERSION_STR,
   });
   await Logger.handleOutput(
     new Deno.Command(`tar`, {
       args: [
         `-xzf`,
-        `binaryen-version_116`,
+        BINARYEN_VERSION_STR,
       ],
       cwd: tmpDir,
       stderr: `piped`,
@@ -140,18 +144,22 @@ async function installWasmOpt() {
     }).spawn(),
   );
   await Deno.chmod(
-    path.join(tmpDir, `binaryen-version_116`, `bin`, `wasm-opt`),
+    path.join(tmpDir, BINARYEN_VERSION_DIR, `bin`, `wasm-opt`),
     0o755,
   );
   // the whole directory needs to be moved due to include files
-  await Deno.rename(
-    path.join(tmpDir, `binaryen-version_116`),
-    `/usr/local/binaryen-version_116`,
-  );
-  await Deno.symlink(
-    path.join(`/usr/local/binaryen-version_116`, `bin`, `wasm-opt`),
-    `/usr/local/bin/wasm-opt`,
-  );
+  if (!(await pathExists(`/usr/local/${BINARYEN_VERSION_DIR}`))) {
+    await Deno.rename(
+      path.join(tmpDir, BINARYEN_VERSION_DIR),
+      `/usr/local/${BINARYEN_VERSION_DIR}`,
+    );
+  }
+  if (!(await pathExists(`/usr/local/bin/wasm-opt`))) {
+    await Deno.symlink(
+      path.join(`/usr/local/${BINARYEN_VERSION_DIR}`, `bin`, `wasm-opt`),
+      `/usr/local/bin/wasm-opt`,
+    );
+  }
   await Deno.remove(tmpDir, { recursive: true });
 }
 
@@ -185,13 +193,23 @@ async function installCProject(
       stdout: `piped`,
     }).spawn(),
   );
-  await Logger.handleOutput(
-    new Deno.Command(`make`, {
-      cwd: path.join(tempDirPath, githubRepoName),
-      stderr: `piped`,
-      stdout: `piped`,
-    }).spawn(),
-  );
+  const command = new Deno.Command("make", {
+    cwd: path.join(tempDirPath, githubRepoName),
+    stdout: "piped",
+    stderr: "piped",
+  });
+  const child = command.spawn();
+  
+  // Read stdout and stderr as text
+  const [status, stdout, stderr] = await Promise.all([
+    child.status,
+    child.stdout ? new Response(child.stdout).text() : Promise.resolve(""),
+    child.stderr ? new Response(child.stderr).text() : Promise.resolve(""),
+  ]);
+  
+  if (!status.success) {
+    console.error(`Command failed with status code ${status.code}`);
+  }
 
   switch (Deno.build.os) {
     case "windows":
@@ -265,16 +283,29 @@ async function installWasm2Wat() {
               file: `wabt-1.0.34-macos-12.tar.gz`,
             },
           );
-          await Logger.handleOutput(
-            new Deno.Command(`tar`, {
-              args: [
-                `-xzf`,
-                downloadedFile.fullPath,
-              ],
-              stderr: `piped`,
-              stdout: `piped`,
-            }).spawn(),
-          );
+          const command = new Deno.Command(`tar`, {
+            args: [
+              `-xzf`,
+              downloadedFile.fullPath,
+            ],
+            stderr: `piped`,
+            stdout: `piped`,
+            cwd: tempDirPath,
+          })
+          const child = command.spawn();
+          
+          // Read stdout and stderr as text
+          const [status, stdout, stderr] = await Promise.all([
+            child.status,
+            child.stdout ? new Response(child.stdout).text() : Promise.resolve(""),
+            child.stderr ? new Response(child.stderr).text() : Promise.resolve(""),
+          ]);
+          
+          if (!status.success) {
+            console.error(`Command failed with status code ${status.code}`);
+          }
+
+          Logger.log(`info`, `Extracted wabt-1.0.34-macos-12.tar.gz`);
           break;
         }
         default: {
@@ -305,14 +336,18 @@ async function installWasm2Wat() {
         0o755,
       );
       // the whole directory needs to be moved due to include files
-      await Deno.rename(
-        path.join(tempDirPath, `wabt-1.0.34`),
-        `/usr/local/wabt-1.0.34`,
-      );
-      await Deno.symlink(
-        path.join(`/usr/local/wabt-1.0.34`, `bin`, `wasm2wat`),
-        `/usr/local/bin/wasm2wat`,
-      );
+      if (!(await pathExists(`/usr/local/wabt-1.0.34`))) {
+        await Deno.rename(
+          path.join(tempDirPath, `wabt-1.0.34`),
+          `/usr/local/wabt-1.0.34`,
+        );
+      } 
+      if (!(await pathExists(`/usr/local/bin/wasm2wat`))) {
+        await Deno.symlink(
+          path.join(`/usr/local/wabt-1.0.34`, `bin`, `wasm2wat`),
+          `/usr/local/bin/wasm2wat`,
+        );
+      } 
   }
   await Deno.remove(tempDirPath, { recursive: true });
 }
@@ -369,13 +404,21 @@ async function uninstallBinary(
 }
 
 async function uninstallWasmOpt() {
-  await Deno.remove(`/usr/local/binaryen-version_116`, { recursive: true });
-  await uninstallBinary(`wasm-opt`);
+  if (await pathExists(`/usr/local/${BINARYEN_VERSION_DIR}`)) {
+    await Deno.remove(`/usr/local/${BINARYEN_VERSION_DIR}`, { recursive: true });
+  }
+  if (await pathExists(`/usr/local/bin/wasm-opt`)) {
+    await uninstallBinary(`wasm-opt`);
+  }
 }
 
 async function uninstallWasm2wat() {
-  await Deno.remove(`/usr/local/wabt-1.0.34`, { recursive: true });
-  await uninstallBinary(`wasm2wat`);
+  if (await pathExists(`/usr/local/wabt-1.0.34`)) {
+    await Deno.remove(`/usr/local/wabt-1.0.34`, { recursive: true });
+  }
+  if (await pathExists(`/usr/local/bin/wasm2wat`)) {
+    await uninstallBinary(`wasm2wat`);
+  }
 }
 
 export async function uninstallPrerequisite(

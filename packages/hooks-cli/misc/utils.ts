@@ -8,3 +8,15 @@ export function enumToMap<T extends string>(
   });
   return map;
 }
+
+export async function pathExists(path: string): Promise<boolean> {
+  try {
+    await Deno.stat(path); // Check the path
+    return true; // Path exists
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return false; // Path does not exist
+    }
+    throw error; // Re-throw for other errors
+  }
+}
