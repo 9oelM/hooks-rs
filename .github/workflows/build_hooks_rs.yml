@@ -20,7 +20,7 @@ jobs:
       - name: "Use Rust Nightly"
         uses: "actions-rs/toolchain@v1"
         with:
-          toolchain: "nightly"
+          toolchain: "nightly-2024-10-17"
           profile: "minimal"
           components: "clippy,rustfmt"
           override: true

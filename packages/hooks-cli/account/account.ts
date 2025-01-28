@@ -1,12 +1,6 @@
-import { prompt, Secret } from "jsr:@cliffy/prompt@1.0.0-rc.7";
 import { Logger, Network } from "../misc/mod.ts";
 
 type XRPLSecret = string;
-
-type HooksRsAccount = {
-  password: string;
-  secret: XRPLSecret;
-};
 
 type PrefundedTestnetAccount = {
   account: {
@@ -29,48 +23,38 @@ type PrefundedTestnetAccount = {
   };
 };
 
-export async function create(
-  shouldCreatePrefundedTestnetAccount: boolean,
-) {
-  if (shouldCreatePrefundedTestnetAccount) {
+export async function create() {
+  Logger.log(
+    `info`,
+    `Fetching prefunded testnet account...`,
+  );
+  const accountInfo = await fetchFundedTestnetAccount();
+  if (!accountInfo) return;
+
+  // write to account.json
+  Logger.log(
+    `info`,
+    `Writing prefunded testnet account to account.json...`,
+  );
+  // write to account.json in current directory where cli was run
+  const currentDir = Deno.cwd();
+
+  // Check if account.json exists
+  if (await Deno.stat(`${currentDir}/account.json`).catch(() => null)) {
     Logger.log(
       `info`,
-      `Fetching prefunded testnet account...`,
+      `account.json already exists. If you want to change the account used, please delete it and run this command again.`,
     );
-    const accountInfo = await fetchFundedTestnetAccount();
-    if (!accountInfo) return;
-
-    // write to account.json
-    Logger.log(
-      `info`,
-      `Writing prefunded testnet account to account.json...`,
-    );
-    // write to account.json in current directory where cli was run
-    const currentDir = Deno.cwd();
-
-    // Check if account.json exists
-    if (await Deno.stat(`${currentDir}/account.json`).catch(() => null)) {
-      Logger.log(
-        `info`,
-        `account.json already exists. If you want to change the account used, please delete it and run this command again.`,
-      );
-      return;
-    }
-
-    await Deno.writeTextFile(
-      `${currentDir}/account.json`,
-      JSON.stringify(accountInfo, null, 2),
-      {
-        create: true,
-      },
-    );
+    return;
   }
-}
 
-export async function derive() {
-  const account = await promptAccountCreationFromsecret();
-  if (!account) return;
-  createAccountFromSecret(account);
+  await Deno.writeTextFile(
+    `${currentDir}/account.json`,
+    JSON.stringify(accountInfo, null, 2),
+    {
+      create: true,
+    },
+  );
 }
 
 async function fetchFundedTestnetAccount(): Promise<
@@ -122,30 +106,4 @@ function isPrefundedTestnetAccount(
   return typeof account === `object` &&
     account !== null &&
     `account` in account;
-}
-
-async function promptAccountCreationFromsecret(): Promise<
-  HooksRsAccount | undefined
-> {
-  const result = await prompt([{
-    name: `password`,
-    message: `Enter a password to encrypt your account secret`,
-    minLength: 1,
-    type: Secret,
-  }, {
-    name: `secret`,
-    message: `Enter your private key`,
-    validate: validatesecret,
-    type: Secret,
-  }]);
-
-  if (result.password === undefined || result.secret === undefined) {
-    Logger.log(
-      `error`,
-      `Could not create account from private key due to missing password or private key`,
-    );
-    return;
-  }
-
-  return result as Required<typeof result>;
 }

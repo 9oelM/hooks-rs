@@ -44,55 +44,11 @@ export const cli = await new Command()
     default: true,
     conflicts: ["--from-secret"],
   })
-  .option(
-    "--testnet <testnet:boolean>",
-    "Create a pre-funded testnet account (used with --new option)",
-    {
-      default: true,
-      conflicts: ["--from-secret"],
-    },
-  )
-  .option(
-    "--from-secret <fromSecret:boolean>",
-    "Derive an account from an existing secret",
-    {
-      default: false,
-      conflicts: ["--new", "--testnet"],
-    },
-  )
-  .action(({
+  .action(async ({
     new: newAccount,
-    testnet,
-    fromSecret,
   }) => {
-    if (newAccount && fromSecret) {
-      Logger.log(
-        `error`,
-        `Cannot use --new with --from-secret`,
-      );
-      Deno.exit(1);
-    }
-
-    if (!newAccount && !fromSecret) {
-      Logger.log(
-        `error`,
-        `Must specify either --new or --from-secret`,
-      );
-      Deno.exit(1);
-    }
-
-    if (testnet && fromSecret) {
-      Logger.log(
-        `error`,
-        `Cannot use --testnet with --from-secret`,
-      );
-      Deno.exit(1);
-    }
-
     if (newAccount) {
-      Account.create(testnet);
-    } else if (fromSecret) {
-      Account.derive();
+      await Account.create();
     }
   })
   .command(
