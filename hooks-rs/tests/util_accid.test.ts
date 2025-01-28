@@ -63,7 +63,7 @@ describe.skip("util_accid.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -72,20 +72,20 @@ describe.skip("util_accid.rs", () => {
         throw new Error("Meta is string, not object");
       }
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
-        HookExecution
+        HookExecution,
       ];
 
       const { HookReturnString, HookReturnCode } = hookExecution.HookExecution;
 
       expect(
-        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString())
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
       ).toBe(0n);
       expect(HookReturnString).toMatch(
         decodeAccountID("rLqUFYGLMBS9jF63iRkadvu3cTixadRTd3")
           .toString(`hex`)
-          .toUpperCase()
+          .toUpperCase(),
       );
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });

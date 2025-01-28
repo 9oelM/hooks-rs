@@ -55,7 +55,7 @@ describe("array_equality.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -79,9 +79,9 @@ describe("array_equality.rs", () => {
       const { HookReturnCode } = hookExecution.HookExecution;
 
       expect(
-        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString())
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
       ).toBe(0n);
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });

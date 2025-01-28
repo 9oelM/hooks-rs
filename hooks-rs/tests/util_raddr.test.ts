@@ -55,7 +55,7 @@ describe("util_raddr.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -64,18 +64,18 @@ describe("util_raddr.rs", () => {
         throw new Error("Meta is string, not object");
       }
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
-        HookExecution
+        HookExecution,
       ];
 
       const { HookReturnString, HookReturnCode } = hookExecution.HookExecution;
 
       expect(
-        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString())
+        TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
       ).toBe(0n);
       expect(HookReturnString).toMatch(
-        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`.toUpperCase()
+        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`.toUpperCase(),
       );
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });

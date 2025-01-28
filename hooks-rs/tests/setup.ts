@@ -88,7 +88,7 @@ export class TestUtils {
       null,
       `${hookName}namespace`,
       undefined,
-      ["Invoke"]
+      ["Invoke"],
     );
     const wasmDir = path.resolve(
       __dirname,
@@ -96,40 +96,40 @@ export class TestUtils {
       `target`,
       `wasm32-unknown-unknown`,
       `release`,
-      `examples`
+      `examples`,
     );
     const debugDir = path.resolve(__dirname, `..`, `target`);
     const wasmInFile = path.resolve(wasmDir, `${hookName}.wasm`);
     const wasmOutFlattened = path.resolve(
       wasmDir,
-      `${hookName}-flattened.wasm`
+      `${hookName}-flattened.wasm`,
     );
     // Maximum allowable depth of blocks reached is 16 levels in hooks GuardCheck.
     // Otherwise, the node will not validate the SetHook transaction.
     // Therefore, flatten it using wasm-opt.
     await exec(
-      `wasm-opt ${wasmInFile} --flatten --rereloop -Oz -Oz -o ${wasmOutFlattened}`
+      `wasm-opt ${wasmInFile} --flatten --rereloop -Oz -Oz -o ${wasmOutFlattened}`,
     );
     const wasmOutCleaned = path.resolve(wasmDir, `${hookName}-cleaned.wasm`);
     const hookCleanerOut = await exec(
-      `hook-cleaner ${wasmOutFlattened} ${wasmOutCleaned}`
+      `hook-cleaner ${wasmOutFlattened} ${wasmOutCleaned}`,
     );
     console.log(JSON.stringify(hookCleanerOut, null, 2));
     await Promise.all([
       exec(
-        `wasm2wat ${wasmInFile} -o ${path.resolve(debugDir, `${hookName}.wat`)}`
+        `wasm2wat ${wasmInFile} -o ${path.resolve(debugDir, `${hookName}.wat`)}`,
       ),
       exec(
         `wasm2wat ${wasmOutCleaned} -o ${path.resolve(
           debugDir,
-          `${hookName}-cleaned.wat`
-        )}`
+          `${hookName}-cleaned.wat`,
+        )}`,
       ),
       exec(
         `wasm2wat ${wasmOutFlattened} -o ${path.resolve(
           debugDir,
-          `${hookName}-flattened.wat`
-        )}`
+          `${hookName}-flattened.wat`,
+        )}`,
       ),
     ]);
     try {
@@ -149,7 +149,7 @@ export class TestUtils {
 
   static async getTransactionFee(
     client: Client,
-    transaction: Transaction
+    transaction: Transaction,
   ): Promise<string> {
     const copyTx = JSON.parse(JSON.stringify(transaction));
     copyTx.Fee = `0`;
@@ -202,7 +202,7 @@ export class TestUtils {
         wallet,
         failHard: true,
         autofill: true,
-      }
+      },
     );
 
     return submitResponse;
@@ -212,7 +212,7 @@ export class TestUtils {
     const SIGN_BIT_MASK = BigInt(`0x8000000000000000`);
 
     const maybeSignedNumber = BigInt(
-      `${hexString.startsWith(`0x`) ? hexString : `0x${hexString}`}`
+      `${hexString.startsWith(`0x`) ? hexString : `0x${hexString}`}`,
     );
 
     const isNegative = (maybeSignedNumber & SIGN_BIT_MASK) !== 0n;
@@ -226,7 +226,7 @@ export class TestUtils {
 
   static async waitForMaybeNonExistentTx(
     client: Client,
-    txHash: string
+    txHash: string,
   ): Promise<boolean> {
     let validated = false;
     let tries = 0;
@@ -261,7 +261,7 @@ export class TestUtils {
 
   static async afterPromise<T>(
     promise: Promise<T>,
-    promiseCb: (result: T) => void
+    promiseCb: (result: T) => void,
   ): Promise<T> {
     const result = await promise;
     promiseCb(result);

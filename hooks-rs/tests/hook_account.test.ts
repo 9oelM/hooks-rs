@@ -61,7 +61,7 @@ describe("hook_account.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        }
+        },
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -86,10 +86,10 @@ describe("hook_account.rs", () => {
 
       // HookReturnString should contain 20-bytes long representation of account address in uppercase hex string.
       expect(HookReturnString).toMatch(
-        decodeAccountID(alice.address).toString("hex").toUpperCase()
+        decodeAccountID(alice.address).toString("hex").toUpperCase(),
       );
       expect(Number(HookReturnCode)).toBe(0);
     },
-    3 * 60_000
+    3 * 60_000,
   );
 });
