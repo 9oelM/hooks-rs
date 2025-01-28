@@ -1,4 +1,4 @@
-import { assert } from "https://deno.land/std@0.207.0/assert/mod.ts";
+import { assert } from "jsr:@std/assert";
 import { DependenciesManager } from "../dependencies_manager/mod.ts";
 
 Deno.test(`Should identify nightly version`, () => {

@@ -12,10 +12,10 @@ describe("util_raddr.rs", () => {
 
   beforeAll(async () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
-    client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
+    client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
+    let [{ account: { secret: secret0 } }, { account: { secret: secret1 } }] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);
@@ -66,7 +66,8 @@ describe("util_raddr.rs", () => {
         TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
       ).toBe(0n);
       expect(HookReturnString).toMatch(
-        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`.toUpperCase(),
+        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`
+          .toUpperCase(),
       );
     },
     3 * 60_000,

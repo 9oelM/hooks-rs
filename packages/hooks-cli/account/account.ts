@@ -1,7 +1,4 @@
-import {
-  prompt,
-  Secret,
-} from "https://deno.land/x/cliffy@v1.0.0-rc.3/prompt/mod.ts";
+import { prompt, Secret } from "jsr:@cliffy/prompt@1.0.0-rc.7";
 import { Logger, Network } from "../misc/mod.ts";
 
 type XRPLSecret = string;

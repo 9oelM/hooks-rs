@@ -1,4 +1,4 @@
-import { parse } from "https://deno.land/std@0.202.0/toml/mod.ts";
+import { parse } from "jsr:@std/toml";
 
 interface MinimalCargoToml {
   package: {

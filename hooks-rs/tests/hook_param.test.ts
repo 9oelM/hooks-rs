@@ -24,10 +24,10 @@ describe("hook_param.rs", () => {
         new iHookParamValue(HOOK_PARAMETER_VALUE),
       ).toXrpl(),
     ];
-    client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
+    client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
+    let [{ account: { secret: secret0 } }, { account: { secret: secret1 } }] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);

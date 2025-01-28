@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.207.0/assert/mod.ts";
+import { assertEquals } from "jsr:@std/assert";
 import { HookOnField, XrplTransactionType } from "../hooks_builder/mod.ts";
 
 Deno.test(`Should initialize default HookOn field`, () => {

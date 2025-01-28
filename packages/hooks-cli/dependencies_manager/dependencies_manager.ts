@@ -2,7 +2,7 @@ import { Logger } from "../misc/mod.ts";
 import { TypedObjectKeys } from "../types/utils.ts";
 // @deno-types="../types/command_exists.d.ts"
 import commandExists from "npm:command-exists";
-import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
+import * as path from "jsr:@std/path";
 import { download } from "https://deno.land/x/download@v2.0.2/mod.ts";
 
 // "cargo 1.75.0-nightly"
