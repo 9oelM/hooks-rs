@@ -24,10 +24,7 @@ jobs:
           override: true
 
       - name: "Install wasm-pack"
-        uses: actions-rs/cargo@v1
-        with:
-          command: "install"
-          args: "wasm-pack --locked --version 0.11.1"
+        run: npm install -g wasm-pack@0.11.1
 
       - name: "Install hook cleaner"
         run: |
