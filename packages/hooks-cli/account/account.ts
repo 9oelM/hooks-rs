@@ -9,23 +9,25 @@ type HooksRsAccount = {
 };
 
 type PrefundedTestnetAccount = {
-  /**
-   * "rBPEg6VqjrahqzAyp1UKSARuSUYLAidKGf"
-   */
-  address: string;
-  /**
-   * "ssKu7GvBV5tLfRHADFqd8EmR3ABVe"
-   */
-  secret: string;
-  /**
-   * tesSUCCESS
-   */
-  code: string;
-  /**
-   * 10000
-   */
-  xrp: number;
-};
+  account: {
+    //     "xAddress": "XV5CC9AbwcsBYScgsjxWpe5VMooGZ8n8NMmaNuhUbqHPozq",
+    xAddress: string;
+    //     "secret": "snTePLtQua9MaLMsRxWuKMQVJV4XP",
+    secret: string;
+    //     "classicAddress": "rPSTDHkr2n9Fq7jza5Ei1nCoSMVanfLXpV",
+    classicAddress: string;
+    // address: 'rPgAY3v5Zag1QK1xgK2YD76drhTiAd6gCE',
+    address: string;
+  };
+  amount: number;
+  balance: number;
+  trace: {
+    //     "hash": "236A497826E877596EED24A9E4A59F4E47196DAB09162FA027DFF3A7487E8CD2",
+    hash: string;
+    //     "code": "tesSUCCESS"
+    code: string;
+  };
+}
 
 export async function create(
   shouldCreatePrefundedTestnetAccount: boolean,
@@ -54,7 +56,7 @@ export async function derive() {
 
 async function fetchFundedTestnetAccount(): Promise<XRPLSecret | undefined> {
   const response = await fetch(
-    `${Network.getRpcUrl(Network.Network.XahauTestnet)}/newcreds`,
+    `${Network.getRpcUrl(Network.Network.XahauTestnet)}/accounts`,
     {
       method: `POST`,
     },
@@ -64,14 +66,18 @@ async function fetchFundedTestnetAccount(): Promise<XRPLSecret | undefined> {
     if (
       isPrefundedTestnetAccount(responseJson)
     ) {
-      if (responseJson.code === `tesSUCCESS`) {
-        const secret = responseJson.secret;
+      if (responseJson.trace.code === `tesSUCCESS`) {
+        Logger.log(
+          `info`,
+          `Successfully fetched prefunded testnet account with address "${responseJson.account.classicAddress}"`,
+        );
+        const secret = responseJson.account.secret;
 
         return secret;
       } else {
         Logger.log(
           `error`,
-          `json deserialization worked, but transaction result code is "${responseJson.code}"`,
+          `json deserialization worked, but transaction result code is "${responseJson.trace.code}"`,
         );
       }
     } else {
@@ -100,10 +106,7 @@ function isPrefundedTestnetAccount(
 ): account is PrefundedTestnetAccount {
   return typeof account === `object` &&
     account !== null &&
-    typeof (account as PrefundedTestnetAccount).address === `string` &&
-    typeof (account as PrefundedTestnetAccount).secret === `string` &&
-    typeof (account as PrefundedTestnetAccount).code === `string` &&
-    typeof (account as PrefundedTestnetAccount).xrp === `number`;
+    `account` in account
 }
 
 async function promptAccountCreationFromsecret(): Promise<
