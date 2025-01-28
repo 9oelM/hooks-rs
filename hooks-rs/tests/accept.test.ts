@@ -17,7 +17,14 @@ describe("accept.rs", () => {
     console.log(1);
     client.networkID = await client.getNetworkID();
     console.log(2);
-    let [{ account: { secret: secret0 } }, { account: { secret: secret1 } }] = await Promise.all([
+    let [
+      {
+        account: { secret: secret0 },
+      },
+      {
+        account: { secret: secret1 },
+      },
+    ] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);

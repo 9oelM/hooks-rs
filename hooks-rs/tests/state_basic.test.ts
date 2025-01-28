@@ -26,7 +26,14 @@ describe("state_basic.rs", () => {
   }, 3 * 60_000);
 
   beforeEach(async () => {
-    let [{ account: { secret: secret0 } }, { account: { secret: secret1 } }] = await Promise.all([
+    let [
+      {
+        account: { secret: secret0 },
+      },
+      {
+        account: { secret: secret1 },
+      },
+    ] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);

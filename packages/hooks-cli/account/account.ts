@@ -37,14 +37,33 @@ export async function create(
       `info`,
       `Fetching prefunded testnet account...`,
     );
-    const maybeSecret = await fetchFundedTestnetAccount();
-    if (!maybeSecret) return;
-    const password = await promptPassword();
-    if (!password) return;
-    const account: HooksRsAccount = {
-      password,
-      secret: maybeSecret,
-    };
+    const accountInfo = await fetchFundedTestnetAccount();
+    if (!accountInfo) return;
+
+    // write to account.json
+    Logger.log(
+      `info`,
+      `Writing prefunded testnet account to account.json...`,
+    );
+    // write to account.json in current directory where cli was run
+    const currentDir = Deno.cwd();
+
+    // Check if account.json exists
+    if (await Deno.stat(`${currentDir}/account.json`).catch(() => null)) {
+      Logger.log(
+        `info`,
+        `account.json already exists. If you want to change the account used, please delete it and run this command again.`,
+      );
+      return;
+    }
+
+    await Deno.writeTextFile(
+      `${currentDir}/account.json`,
+      JSON.stringify(accountInfo, null, 2),
+      {
+        create: true,
+      }
+    );
   }
 }
 
@@ -54,7 +73,7 @@ export async function derive() {
   createAccountFromSecret(account);
 }
 
-async function fetchFundedTestnetAccount(): Promise<XRPLSecret | undefined> {
+async function fetchFundedTestnetAccount(): Promise<{ secret: XRPLSecret; address: string } | undefined> {
   const response = await fetch(
     `${Network.getRpcUrl(Network.Network.XahauTestnet)}/accounts`,
     {
@@ -73,7 +92,7 @@ async function fetchFundedTestnetAccount(): Promise<XRPLSecret | undefined> {
         );
         const secret = responseJson.account.secret;
 
-        return secret;
+        return { secret, address: responseJson.account.classicAddress };
       } else {
         Logger.log(
           `error`,

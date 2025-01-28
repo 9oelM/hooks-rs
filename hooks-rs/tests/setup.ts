@@ -117,28 +117,22 @@ export class TestUtils {
     console.log(JSON.stringify(hookCleanerOut, null, 2));
     await Promise.all([
       exec(
-        `wasm2wat ${wasmInFile} -o ${
-          path.resolve(
-            debugDir,
-            `${hookName}.wat`,
-          )
-        }`,
+        `wasm2wat ${wasmInFile} -o ${path.resolve(
+          debugDir,
+          `${hookName}.wat`,
+        )}`,
       ),
       exec(
-        `wasm2wat ${wasmOutCleaned} -o ${
-          path.resolve(
-            debugDir,
-            `${hookName}-cleaned.wat`,
-          )
-        }`,
+        `wasm2wat ${wasmOutCleaned} -o ${path.resolve(
+          debugDir,
+          `${hookName}-cleaned.wat`,
+        )}`,
       ),
       exec(
-        `wasm2wat ${wasmOutFlattened} -o ${
-          path.resolve(
-            debugDir,
-            `${hookName}-flattened.wat`,
-          )
-        }`,
+        `wasm2wat ${wasmOutFlattened} -o ${path.resolve(
+          debugDir,
+          `${hookName}-flattened.wat`,
+        )}`,
       ),
     ]);
     try {

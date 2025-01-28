@@ -15,7 +15,7 @@ jobs:
         working-directory: hooks-rs
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
 
       - name: "Use Rust Nightly"
         uses: "actions-rs/toolchain@v1"

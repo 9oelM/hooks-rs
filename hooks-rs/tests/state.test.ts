@@ -16,7 +16,14 @@ describe("state.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [{ account: { secret: secret0 } }, { account: { secret: secret1 } }] = await Promise.all([
+    let [
+      {
+        account: { secret: secret0 },
+      },
+      {
+        account: { secret: secret1 },
+      },
+    ] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);
