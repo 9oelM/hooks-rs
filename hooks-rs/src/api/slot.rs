@@ -1,3 +1,4 @@
+use crate::api;
 use crate::c;
 
 use super::*;
@@ -61,7 +62,7 @@ pub fn slot_type(slot_no: u32, flags: SlotTypeFlags) -> Result<FieldOrXrpAmount>
 
             match res {
                 res if res >= 0 => Ok(FieldOrXrpAmount::Field(unsafe {
-                    core::mem::transmute(res as u32)
+                    core::mem::transmute::<u32, api::FieldId>(res as u32)
                 })),
                 _ => Err(Error::from_code(res as _)),
             }

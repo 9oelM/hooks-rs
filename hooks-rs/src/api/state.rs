@@ -75,7 +75,6 @@ where
 ///     };
 /// }
 /// ```
-
 #[inline(always)]
 pub fn state_set(data: &[u8], key: &[u8]) -> Result<u64> {
     unsafe {
