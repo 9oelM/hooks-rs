@@ -56,7 +56,7 @@ describe("state.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        },
+        }
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -76,7 +76,7 @@ describe("state.rs", () => {
 
       // Hook always returns uppercase hex string
       const stateKey = padHexString(
-        Buffer.from(`hello world key`).toString("hex").toUpperCase(),
+        Buffer.from(`hello world key`).toString("hex").toUpperCase()
       );
       // Hook always returns uppercase hex string
       const expectedHookStateData = Buffer.from(`hello world val`)
@@ -87,7 +87,7 @@ describe("state.rs", () => {
         client,
         alice.classicAddress,
         stateKey,
-        `${HOOK_NAME}namespace`,
+        `${HOOK_NAME}namespace`
       );
 
       expect(actualState.HookStateData).toBe(expectedHookStateData);
@@ -102,6 +102,6 @@ describe("state.rs", () => {
       // Hook state data is also returned as a parameter to 'accept' function
       expect(HookReturnString).toBe(expectedHookStateData);
     },
-    3 * 60_000,
+    3 * 60_000
   );
 });

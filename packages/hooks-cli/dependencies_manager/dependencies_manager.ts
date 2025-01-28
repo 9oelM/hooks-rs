@@ -75,9 +75,9 @@ export async function checkPrerequisitesInstalled() {
   return prerequisitesInstallationStatus;
 }
 
-export const BINARYEN_VERSION_NUM = `121`
-export const BINARYEN_VERSION_STR = `binaryen_version_${BINARYEN_VERSION_NUM}`
-export const BINARYEN_VERSION_DIR = `binaryen-version_${BINARYEN_VERSION_NUM}`
+export const BINARYEN_VERSION_NUM = `121`;
+export const BINARYEN_VERSION_STR = `binaryen_version_${BINARYEN_VERSION_NUM}`;
+export const BINARYEN_VERSION_DIR = `binaryen-version_${BINARYEN_VERSION_NUM}`;
 const BINARYEN_RELEASE_121 =
   `https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION_NUM}/binaryen-version_${BINARYEN_VERSION_NUM}`;
 const ARM64_MACOS = `arm64-macos`;
@@ -199,14 +199,14 @@ async function installCProject(
     stderr: "piped",
   });
   const child = command.spawn();
-  
+
   // Read stdout and stderr as text
-  const [status, stdout, stderr] = await Promise.all([
+  const [status] = await Promise.all([
     child.status,
     child.stdout ? new Response(child.stdout).text() : Promise.resolve(""),
     child.stderr ? new Response(child.stderr).text() : Promise.resolve(""),
   ]);
-  
+
   if (!status.success) {
     console.error(`Command failed with status code ${status.code}`);
   }
@@ -291,16 +291,20 @@ async function installWasm2Wat() {
             stderr: `piped`,
             stdout: `piped`,
             cwd: tempDirPath,
-          })
+          });
           const child = command.spawn();
-          
+
           // Read stdout and stderr as text
-          const [status, stdout, stderr] = await Promise.all([
+          const [status] = await Promise.all([
             child.status,
-            child.stdout ? new Response(child.stdout).text() : Promise.resolve(""),
-            child.stderr ? new Response(child.stderr).text() : Promise.resolve(""),
+            child.stdout
+              ? new Response(child.stdout).text()
+              : Promise.resolve(""),
+            child.stderr
+              ? new Response(child.stderr).text()
+              : Promise.resolve(""),
           ]);
-          
+
           if (!status.success) {
             console.error(`Command failed with status code ${status.code}`);
           }
@@ -341,13 +345,13 @@ async function installWasm2Wat() {
           path.join(tempDirPath, `wabt-1.0.34`),
           `/usr/local/wabt-1.0.34`,
         );
-      } 
+      }
       if (!(await pathExists(`/usr/local/bin/wasm2wat`))) {
         await Deno.symlink(
           path.join(`/usr/local/wabt-1.0.34`, `bin`, `wasm2wat`),
           `/usr/local/bin/wasm2wat`,
         );
-      } 
+      }
   }
   await Deno.remove(tempDirPath, { recursive: true });
 }
@@ -405,7 +409,9 @@ async function uninstallBinary(
 
 async function uninstallWasmOpt() {
   if (await pathExists(`/usr/local/${BINARYEN_VERSION_DIR}`)) {
-    await Deno.remove(`/usr/local/${BINARYEN_VERSION_DIR}`, { recursive: true });
+    await Deno.remove(`/usr/local/${BINARYEN_VERSION_DIR}`, {
+      recursive: true,
+    });
   }
   if (await pathExists(`/usr/local/bin/wasm-opt`)) {
     await uninstallBinary(`wasm-opt`);

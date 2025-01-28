@@ -52,7 +52,7 @@ describe("oxtn_param.rs", () => {
         HookParameters: [
           new iHookParamEntry(
             new iHookParamName("param test"),
-            new iHookParamValue(OTXN_PARAM_VALUE),
+            new iHookParamValue(OTXN_PARAM_VALUE)
           ).toXrpl(),
         ],
       };
@@ -68,7 +68,7 @@ describe("oxtn_param.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        },
+        }
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -93,9 +93,9 @@ describe("oxtn_param.rs", () => {
 
       expect(Number(HookReturnCode)).toBe(0);
       expect(Buffer.from(HookReturnString, "hex").toString()).toMatch(
-        OTXN_PARAM_VALUE,
+        OTXN_PARAM_VALUE
       );
     },
-    3 * 60_000,
+    3 * 60_000
   );
 });

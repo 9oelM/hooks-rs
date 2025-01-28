@@ -27,7 +27,7 @@ type PrefundedTestnetAccount = {
     //     "code": "tesSUCCESS"
     code: string;
   };
-}
+};
 
 export async function create(
   shouldCreatePrefundedTestnetAccount: boolean,
@@ -62,7 +62,7 @@ export async function create(
       JSON.stringify(accountInfo, null, 2),
       {
         create: true,
-      }
+      },
     );
   }
 }
@@ -73,7 +73,9 @@ export async function derive() {
   createAccountFromSecret(account);
 }
 
-async function fetchFundedTestnetAccount(): Promise<{ secret: XRPLSecret; address: string } | undefined> {
+async function fetchFundedTestnetAccount(): Promise<
+  { secret: XRPLSecret; address: string } | undefined
+> {
   const response = await fetch(
     `${Network.getRpcUrl(Network.Network.XahauTestnet)}/accounts`,
     {
@@ -114,18 +116,12 @@ async function fetchFundedTestnetAccount(): Promise<{ secret: XRPLSecret; addres
   }
 }
 
-function createNewAccount() {
-}
-
-function createAccountFromSecret(account: HooksRsAccount) {
-}
-
 function isPrefundedTestnetAccount(
   account: unknown,
 ): account is PrefundedTestnetAccount {
   return typeof account === `object` &&
     account !== null &&
-    `account` in account
+    `account` in account;
 }
 
 async function promptAccountCreationFromsecret(): Promise<
@@ -152,27 +148,4 @@ async function promptAccountCreationFromsecret(): Promise<
   }
 
   return result as Required<typeof result>;
-}
-
-async function promptPassword(): Promise<
-  string | undefined
-> {
-  const password = await Secret.prompt({
-    message: `Enter a password to encrypt your account secret`,
-    minLength: 1,
-  });
-
-  if (password === undefined) {
-    Logger.log(
-      `error`,
-      `Could not create account due to missing password`,
-    );
-    return;
-  }
-
-  return password;
-}
-
-function validatesecret(secret: string): boolean {
-  return true;
 }

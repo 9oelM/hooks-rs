@@ -11,7 +11,7 @@ keywords = ["xrp", "xrpl", "hook", "hooks"]
 categories = ["wasm", "no-std"]
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.37"
+wasm-bindgen-test = "0.3.50"
 
 [build-dependencies]
-bindgen = "0.66.1"
+bindgen = "0.69.0"

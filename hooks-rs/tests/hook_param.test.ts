@@ -21,7 +21,7 @@ describe("hook_param.rs", () => {
     hook.HookParameters = [
       new iHookParamEntry(
         new iHookParamName("param test"),
-        new iHookParamValue(HOOK_PARAMETER_VALUE),
+        new iHookParamValue(HOOK_PARAMETER_VALUE)
       ).toXrpl(),
     ];
     client = new Client("wss://xahau-test.net", {});
@@ -67,7 +67,7 @@ describe("hook_param.rs", () => {
         {
           wallet: bob,
           autofill: true,
-        },
+        }
       );
       if (!txResponse.result.meta) {
         throw new Error("No meta in tx response");
@@ -92,9 +92,9 @@ describe("hook_param.rs", () => {
 
       expect(Number(HookReturnCode)).toBe(0);
       expect(Buffer.from(HookReturnString, "hex").toString()).toMatch(
-        HOOK_PARAMETER_VALUE,
+        HOOK_PARAMETER_VALUE
       );
     },
-    3 * 60_000,
+    3 * 60_000
   );
 });
