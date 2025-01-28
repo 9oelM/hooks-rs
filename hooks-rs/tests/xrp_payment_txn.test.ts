@@ -12,13 +12,23 @@ describe("xrp_payment_txn.rs", () => {
 
   beforeAll(async () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
-    client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
+    client = new Client("wss://xahau-test.net", {});
     await client.connect();
+    console.log(1);
     client.networkID = await client.getNetworkID();
-    let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
+    console.log(2);
+    let [
+      {
+        account: { secret: secret0 },
+      },
+      {
+        account: { secret: secret1 },
+      },
+    ] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);
+    console.log(3, secret0, secret1);
     alice = Wallet.fromSecret(secret0);
     bob = Wallet.fromSecret(secret1);
     await TestUtils.setHook(client, alice.seed!, hook);

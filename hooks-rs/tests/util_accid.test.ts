@@ -1,10 +1,10 @@
 // xrpl
 import {
   Client,
+  decodeAccountID,
   Invoke,
   Transaction,
   Wallet,
-  decodeAccountID,
 } from "@transia/xrpl";
 import { Faucet, TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
@@ -20,10 +20,17 @@ describe.skip("util_accid.rs", () => {
 
   beforeAll(async () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
-    client = new Client("wss://hooks-testnet-v3.xrpl-labs.com", {});
+    client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
+    let [
+      {
+        account: { secret: secret0 },
+      },
+      {
+        account: { secret: secret1 },
+      },
+    ] = await Promise.all([
       Faucet.waitAndGetNewAccount(),
       Faucet.waitAndGetNewAccount(),
     ]);

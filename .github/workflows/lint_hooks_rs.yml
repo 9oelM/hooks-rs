@@ -12,42 +12,29 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
 
       - name: "Use Rust nightly"
-        uses: "actions-rs/toolchain@v1"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly
-          profile: "minimal"
+          toolchain: "nightly"
+          target: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
-
-      - name: "Use Rust cache"
-        uses: "Swatinem/rust-cache@v2"
-        with:
-          cache-on-failure: true
-
-      - name: "Add wasm32-unknown-unknown target"
-        run: |
-          rustup target add wasm32-unknown-unknown
-
-      - name: "Install prettier"
-        run: |
-          yarn global add prettier@3.0.3
 
       - name: "Install gcc-multilib"
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-multilib
 
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.38.2
+          deno-version: vx.x.x
 
       - name: "Check prettier format in hooks-rs"
         run: |
           cd hooks-rs
-          prettier --ignore-path .gitignore --check .
+          npx prettier@3.4.2 --check .
 
       - name: "Check Rust format in hooks-rs"
         run: |

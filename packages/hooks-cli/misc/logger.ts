@@ -1,4 +1,4 @@
-import { colors } from "https://deno.land/x/cliffy@v1.0.0-rc.3/ansi/colors.ts";
+import { colors } from "jsr:@cliffy/ansi@1.0.0-rc.7/colors";
 
 export class Logger {
   private static success = colors.bold.green;

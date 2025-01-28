@@ -1,5 +1,5 @@
-import { assert } from "https://deno.land/std@0.207.0/assert/mod.ts";
-import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
+import { assert } from "jsr:@std/assert";
+import * as path from "jsr:@std/path";
 import { build, check, newProject, uninstall, up } from "../cli.ts";
 import { DependenciesManager } from "../dependencies_manager/mod.ts";
 
@@ -21,7 +21,7 @@ Deno.test(`[new] command should create a new template project`, async () => {
   ]);
 
   const tmpDir = await Deno.makeTempDir();
-  await Deno.chdir(tmpDir);
+  Deno.chdir(tmpDir);
   await newProject(undefined, `example-project-name`);
   const templateProjectPath = path.join(tmpDir, `example-project-name`);
   for await (const dirEntry of Deno.readDir(templateProjectPath)) {
@@ -33,6 +33,7 @@ Deno.test(`[new] command should create a new template project`, async () => {
 });
 
 Deno.test(`[check] command should return false if not all dependencies are installed`, async () => {
+  await uninstall();
   const checksPassing = await check();
   assert(!checksPassing);
 });
@@ -57,9 +58,9 @@ Deno.test(`[uninstall] command should uninstall all dependencies except git, car
   Object.entries(prerequisitesInstallationStatus).forEach(
     ([prerequisiteName, isInstalled]) => {
       if (shouldBeInstalled.has(prerequisiteName)) {
-        assert(isInstalled);
+        assert(isInstalled, `${prerequisiteName} is not installed`);
       } else {
-        assert(!isInstalled);
+        assert(!isInstalled, `${prerequisiteName} is installed`);
       }
     },
   );

@@ -15,24 +15,15 @@ jobs:
         working-directory: hooks-rs
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
 
-      - name: "Use Rust Nightly"
-        uses: "actions-rs/toolchain@v1"
+      - name: "Use Rust nightly"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: "nightly"
-          profile: "minimal"
+          target: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
-
-      - name: "Use Rust cache"
-        uses: "Swatinem/rust-cache@v2"
-        with:
-          cache-on-failure: true
-
-      - name: "Add wasm32-unknown-unknown target"
-        run: |
-          rustup target add wasm32-unknown-unknown
 
       - name: "Install gcc-multilib"
         run: |

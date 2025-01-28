@@ -1,12 +1,16 @@
-import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
+import * as path from "jsr:@std/path";
 import * as xrpl from "npm:@transia/xrpl";
 import { getFeeEstimateXrp } from "npm:@transia/xrpl/dist/npm/sugar/index.js";
 import { Hex, Logger } from "../misc/mod.ts";
-import { Sha256 } from "https://deno.land/std@0.119.0/hash/sha256.ts";
 import { HookGrant, HookParameter, HookPayload } from "../types/hooks.ts";
 
-function hexNamespace(hookNamespaceSeed: string): string {
-  return new Sha256().update(hookNamespaceSeed).hex().toUpperCase();
+async function hexNamespace(hookNamespaceSeed: string): Promise<string> {
+  const data = new TextEncoder().encode(hookNamespaceSeed);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+    .toUpperCase();
+  return hashHex;
 }
 
 function hexHookParameters(data: HookParameter[]): HookParameter[] {
@@ -33,14 +37,14 @@ function hexHookParameters(data: HookParameter[]): HookParameter[] {
   return hookParameters;
 }
 
-function createHookPayload(
+async function createHookPayload(
   version?: number | null,
   namespace?: string | null,
   flags?: number | 0,
   hookOn = `0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffbfffff`,
   hookParams?: HookParameter[] | null,
   hookGrants?: HookGrant[] | null,
-): HookPayload {
+): Promise<HookPayload> {
   const hook = {
     hookOn,
   } as HookPayload;
@@ -48,7 +52,7 @@ function createHookPayload(
     hook.HookApiVersion = version;
   }
   if (namespace) {
-    hook.HookNamespace = hexNamespace(namespace);
+    hook.HookNamespace = await hexNamespace(namespace);
   }
   if (flags) {
     hook.Flags = flags;
@@ -74,7 +78,7 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
     stdout: `piped`,
   }).spawn();
   await Logger.handleOutput(cargoBuildOutput);
-  const hook = createHookPayload(
+  const hook = await createHookPayload(
     0,
     `${hookName}namespace`,
     undefined,

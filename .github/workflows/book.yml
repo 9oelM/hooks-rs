@@ -15,7 +15,7 @@ jobs:
       id-token: write # To update the deployment status
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
 
       - name: "Use Rust Nightly"
         uses: "actions-rs/toolchain@v1"

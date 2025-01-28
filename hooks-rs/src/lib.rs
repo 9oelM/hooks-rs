@@ -24,11 +24,10 @@
 /// Internal C bindings. Unless if you are creating something very low-level,
 /// you should not need to use this module directly.
 #[allow(missing_docs)]
+#[allow(non_upper_case_globals)]
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
 pub mod c {
-    #![allow(non_upper_case_globals)]
-    #![allow(non_camel_case_types)]
-    #![allow(non_snake_case)]
-
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 

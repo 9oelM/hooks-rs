@@ -155,7 +155,7 @@ pub struct TransactionBuffer<'a, const TXN_LEN: usize> {
 // of declaring it as an associated constant, but specifying
 // constant has the return type in `build` method is unstable
 // in Rust nightly right now. See `generic_const_exprs` feature.
-impl<'a, const TXN_LEN: usize> TransactionBuffer<'a, TXN_LEN> {
+impl<const TXN_LEN: usize> TransactionBuffer<'_, TXN_LEN> {
     /// Encodes a transaction type.
     ///
     /// # Example
@@ -481,7 +481,7 @@ impl<'a> XrpPaymentBuilder<'a> {
     }
 }
 
-impl<'a> TransactionBuilder<270> for XrpPaymentBuilder<'a> {
+impl TransactionBuilder<270> for XrpPaymentBuilder<'_> {
     const TXN_TYPE: TxnType = TxnType::Payment;
 
     #[inline(always)]

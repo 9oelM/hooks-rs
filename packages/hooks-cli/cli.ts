@@ -1,11 +1,18 @@
-import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
-import * as path from "https://deno.land/std@0.207.0/path/mod.ts";
+import { Command } from "jsr:@cliffy/command@1.0.0-rc.7";
+import * as path from "jsr:@std/path";
 import { Logger } from "./misc/logger.ts";
 import { isMinimalCargoToml, readCargoToml } from "./misc/cargo_toml.ts";
 import { TypedObjectKeys } from "./types/utils.ts";
-import { copy } from "https://deno.land/std@0.207.0/fs/copy.ts";
+import { copy } from "jsr:@std/fs";
 import { DependenciesManager } from "./dependencies_manager/mod.ts";
-import { HooksBuilder } from "./hooks_builder/mod.ts";
+import {
+  HooksBuilder,
+  isXrplTransactionType,
+  XrplTransactionType,
+} from "./hooks_builder/mod.ts";
+import { getRpcUrl } from "./misc/network.ts";
+import { Network } from "./misc/mod.ts";
+import { Account } from "./account/mod.ts";
 
 // Export for testing
 export const cli = await new Command()
@@ -31,6 +38,20 @@ export const cli = await new Command()
   )
   .action(check)
   .command(
+    "account",
+  )
+  .option("--new <new:boolean>", "Create a new account stored in JSON file", {
+    default: true,
+    conflicts: ["--from-secret"],
+  })
+  .action(async ({
+    new: newAccount,
+  }) => {
+    if (newAccount) {
+      await Account.create();
+    }
+  })
+  .command(
     "build",
     "Compile and preprocess a hook",
   )
@@ -44,10 +65,29 @@ export const cli = await new Command()
     `deploy`,
     `Deploy a built hook to Xahau network`,
   )
-  .action(deploy)
+  .option("--rpc <rpc:string>", "RPC endpoint for deployment", {
+    default: getRpcUrl(Network.Network.XahauTestnet),
+  })
+  .option(
+    "--hook-on [transactionTypes...:string]",
+    "A list of HookOn fields in UPPERCASE",
+    {
+      required: true,
+    },
+  )
+  .action(({
+    rpc,
+    hookOn,
+  }) => {
+    validateDeployOptions({
+      rpc,
+      hookOn,
+    });
+  })
   .command(
     `uninstall`,
-    `Uninstall all prerequisite binaries installed by 'up' command. WARNING: if you have other projects using the prerequisite binaries or if you have installed the binaries yourself in the past, those binaries will be removed and may cause you problems)`,
+    `Uninstall all prerequisite binaries installed by 'up' command. 
+WARNING: if you have other projects using the prerequisite binaries or if you have installed the binaries yourself in the past, those binaries will be removed and may cause you problems)`,
   )
   .action(uninstall)
   .parse(Deno.args);
@@ -196,8 +236,52 @@ export async function check() {
     wasm32UnknownUnknownTargetInstalled;
 }
 
+export function account() {
+}
+
+/**
+ * @throws Error if invalid options are supplied
+ */
+export function validateDeployOptions({
+  rpc,
+  hookOn,
+}: {
+  rpc: string;
+  // Follows the auto inferred type from cliffy
+  hookOn: true | string[];
+}) {
+  if (!Array.isArray(hookOn) || hookOn.length === 0) {
+    throw new Error(
+      `HookOn field must be a list of transaction tyes. For example:
+--hook-on PAYMENT TICKET_CREATE INVOKE`,
+    );
+  }
+
+  const invalidTransactionTypes = hookOn.filter(
+    (hookOnField) => !isXrplTransactionType(hookOnField),
+  ).join(`, `);
+
+  if (invalidTransactionTypes.length > 0) {
+    throw new Error(
+      `Invalid transaction types supplied for HookOn field: ${invalidTransactionTypes}`,
+    );
+  }
+
+  const hookOnSet = new Set<keyof typeof XrplTransactionType>(
+    // we checked that all elements are valid transaction types above
+    hookOn as (keyof typeof XrplTransactionType)[],
+  );
+
+  // Will throw if not a valid URL
+  const rpcUrl = new URL(rpc);
+
+  return {
+    hookOn: hookOnSet,
+    rpc: rpcUrl,
+  };
+}
+
 export async function deploy() {
-  // TODO
 }
 
 export async function uninstall() {
