@@ -6,5 +6,4 @@ docker run \
   -v $PWD:/app \
   hooks-cli:latest \
   test \
-  --allow-all \
-  /app/tests/*_test.ts
+  --allow-all
