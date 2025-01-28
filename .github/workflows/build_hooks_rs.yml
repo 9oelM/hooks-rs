@@ -25,15 +25,6 @@ jobs:
           components: "clippy,rustfmt"
           override: true
 
-      - name: "Use Rust cache"
-        uses: "Swatinem/rust-cache@v2"
-        with:
-          cache-on-failure: true
-
-      - name: "Add wasm32-unknown-unknown target"
-        run: |
-          rustup target add wasm32-unknown-unknown
-
       - name: "Install gcc-multilib"
         run: |
           sudo apt-get update
