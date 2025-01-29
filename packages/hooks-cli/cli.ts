@@ -458,7 +458,11 @@ export async function deploy({
   ) {
     Logger.log(
       `success`,
-      `Successfully deployed hook`,
+      `Successfully deployed the hook.`,
+    );
+    Logger.log(
+      `info`,
+      `${JSON.stringify(submitResponse, null, 2)}`,
     );
   } else {
     Logger.log(
