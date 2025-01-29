@@ -1,6 +1,5 @@
 import { Logger } from "../misc/mod.ts";
 import { TypedObjectKeys } from "../types/utils.ts";
-// @deno-types="../types/command_exists.d.ts"
 import commandExists from "npm:command-exists@1.2.9";
 import * as path from "jsr:@std/path@1.0.8";
 import { pathExists } from "../misc/utils.ts";
