@@ -7,6 +7,7 @@ import { TypedObjectKeys } from "./types/utils.ts";
 import { copy } from "jsr:@std/fs";
 import { DependenciesManager } from "./dependencies_manager/mod.ts";
 import {
+  HookOnField,
   HooksBuilder,
   isXrplTransactionType,
   XrplTransactionType,
@@ -15,6 +16,15 @@ import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
 import { Account } from "./account/mod.ts";
 import { pathExists } from "./misc/utils.ts";
+import {
+  Client,
+  encode,
+  SetHook,
+  SetHookFlags,
+  Transaction,
+  Wallet,
+} from "@transia/xrpl";
+import { HookPayload } from "./types/mod.ts";
 
 // Export for testing
 export const cli = await new Command()
@@ -60,24 +70,79 @@ export const cli = await new Command()
     `deploy`,
     `Deploy a built hook to Xahau network`,
   )
-  .option("--rpc <rpc:string>", "RPC endpoint for deployment", {
+  .option("--rpc <rpc:string>", "Websocket RPC endpoint for deployment", {
     default: getRpcUrl(Network.Network.XahauTestnet),
   })
   .option(
     "--hook-on [transactionTypes...:string]",
-    "A list of HookOn fields in UPPERCASE",
+    "A list of HookOn fields in UPPERCASE (example: --hook-on PAYMENT TICKET_CREATE INVOKE)",
     {
       required: true,
     },
   )
-  .action(({
+  .action(async ({
     rpc,
     hookOn,
   }) => {
-    validateDeployOptions({
+    const {
+      hookOn: hookOnTTSet,
+    } = validateDeployOptions({
       rpc,
       hookOn,
     });
+
+    const hookOnField0xHex = new HookOnField().fromSet(new Set(hookOnTTSet))
+      .toHex();
+
+    const client = new Client(rpc, {});
+    await client.connect();
+    client.networkID = await client.getNetworkID();
+
+    const account = await Account.load();
+    if (!account) {
+      Logger.log(
+        `error`,
+        `Could not load account from account.json`,
+      );
+      Deno.exit(1);
+    }
+
+    const hookPayload = await build();
+
+    if (!hookPayload) {
+      Logger.log(
+        `error`,
+        `Could not build hook.`,
+      );
+      Deno.exit(1);
+    }
+
+    hookPayload.HookOn = hookOnField0xHex;
+
+    const submitResponse = await setHook(
+      client,
+      account.secret,
+      hookPayload,
+    );
+
+    if (
+      `meta` in submitResponse && typeof submitResponse.meta === `object` &&
+      submitResponse.meta !== null &&
+      `TransactionResult` in submitResponse.meta &&
+      submitResponse.meta.TransactionResult === "tesSUCCESS"
+    ) {
+      Logger.log(
+        `success`,
+        `Successfully deployed hook`,
+      );
+      console.log(JSON.stringify(submitResponse, null, 2));
+    } else {
+      Logger.log(
+        `error`,
+        `Could not deploy hook: ${JSON.stringify(submitResponse)}`,
+      );
+      Deno.exit(1);
+    }
   })
   .command(
     `uninstall`,
@@ -371,4 +436,67 @@ export async function uninstall() {
   }
 
   await Promise.all(uninstallations);
+}
+
+async function setHook(client: Client, secret: string, hook: HookPayload) {
+  const wallet = Wallet.fromSecret(secret);
+
+  const tx: SetHook = {
+    TransactionType: `SetHook`,
+    Account: wallet.address,
+    Hooks: [{ Hook: hook }],
+    Flags: SetHookFlags.hsfOverride | SetHookFlags.hsfNSDelete,
+  };
+
+  const fee = await getTransactionFee(client, tx);
+  tx.Fee = fee;
+
+  const submitResponse = await submitAndWaitWithRetries(
+    client,
+    tx,
+    {
+      wallet,
+      failHard: true,
+      autofill: true,
+    },
+  );
+
+  return submitResponse;
+}
+
+async function getTransactionFee(
+  client: Client,
+  transaction: Transaction,
+): Promise<string> {
+  const copyTx = JSON.parse(JSON.stringify(transaction));
+  copyTx.Fee = `0`;
+  copyTx.SigningPubKey = ``;
+
+  const preparedTx = await client.autofill(copyTx);
+
+  const tx_blob = encode(preparedTx);
+
+  const result = await getFeeEstimateXrp(client, tx_blob);
+
+  return result;
+}
+
+async function submitAndWaitWithRetries(
+  client: Client,
+  ...params: Parameters<Client["submitAndWait"]>
+) {
+  let tries = 0;
+  while (tries < 3) {
+    try {
+      const result = await client.submitAndWait(...params);
+      return result;
+    } catch (e) {
+      console.error(`${e} - retrying...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      tries++;
+      continue;
+    }
+  }
+
+  throw new Error(`Could not submit transaction after ${tries} tries`);
 }
