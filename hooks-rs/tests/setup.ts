@@ -10,12 +10,17 @@ import {
 } from "@transia/xrpl";
 import { getFeeEstimateXrp } from "@transia/xrpl/dist/npm/sugar";
 import { exec as execWithCallback } from "child_process";
-import { readFile as readFileWithCallback } from "fs";
+import {
+  readFile as readFileWithCallback,
+  writeFile as writeFileWithCallback,
+} from "fs";
 import path from "path";
 import util from "util";
+import initWabt from "wabt";
 
 const exec = util.promisify(execWithCallback);
 const readFile = util.promisify(readFileWithCallback);
+const writeFile = util.promisify(writeFileWithCallback);
 
 interface FaucetSuccessResponse {
   account: {
@@ -80,6 +85,15 @@ export class Faucet {
 }
 
 export class TestUtils {
+  private static wasm2wat(
+    wabt: Awaited<ReturnType<typeof initWabt>>,
+    wasm: Uint8Array,
+  ): string {
+    const mo = wabt.readWasm(wasm, { readDebugNames: true });
+    mo.applyNames();
+    return mo.toText({ foldExprs: false, inlineExport: false });
+  }
+
   static async buildHook(hookName: string): Promise<iHook> {
     await exec("cargo +nightly build --examples --release");
     const hook = createHookPayload(
@@ -115,23 +129,49 @@ export class TestUtils {
       `hook-cleaner ${wasmOutFlattened} ${wasmOutCleaned}`,
     );
     console.log(JSON.stringify(hookCleanerOut, null, 2));
-    await Promise.all([
-      exec(
-        `wasm2wat ${wasmInFile} -o ${path.resolve(debugDir, `${hookName}.wat`)}`,
+
+    const buffers = {
+      wasmIn: await readFile(wasmInFile),
+      wasmOutCleaned: await readFile(wasmOutCleaned),
+      wasmOutFlattened: await readFile(wasmOutFlattened),
+    };
+    const wabt = await initWabt();
+    const wats = {
+      wasmIn: TestUtils.wasm2wat(wabt, new Uint8Array(buffers.wasmIn)),
+      wasmOutCleaned: TestUtils.wasm2wat(
+        wabt,
+        new Uint8Array(buffers.wasmOutCleaned),
       ),
-      exec(
-        `wasm2wat ${wasmOutCleaned} -o ${path.resolve(
-          debugDir,
-          `${hookName}-cleaned.wat`,
-        )}`,
+      wasmOutFlattened: TestUtils.wasm2wat(
+        wabt,
+        new Uint8Array(buffers.wasmOutFlattened),
       ),
-      exec(
-        `wasm2wat ${wasmOutFlattened} -o ${path.resolve(
-          debugDir,
-          `${hookName}-flattened.wat`,
-        )}`,
-      ),
-    ]);
+    };
+    try {
+      await Promise.all([
+        writeFile(
+          path.resolve(debugDir, `${hookName}.wat`),
+          wats.wasmIn,
+        ),
+        writeFile(
+          path.resolve(
+            debugDir,
+            `${hookName}-cleaned.wat`,
+          ),
+          wats.wasmOutCleaned,
+        ),
+        writeFile(
+          path.resolve(
+            debugDir,
+            `${hookName}-flattened.wat`,
+          ),
+          wats.wasmOutFlattened,
+        ),
+      ]);
+    } catch (e) {
+      console.error(e);
+      throw new Error(`Failed to save wasm to wat`);
+    }
     try {
       const guardCheckerOut = await exec(`guard_checker ${wasmOutCleaned}`);
       console.log(JSON.stringify(guardCheckerOut, null, 2));

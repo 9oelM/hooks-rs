@@ -1,7 +1,7 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
 import { ExecutionUtility } from "@transia/hooks-toolkit";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 
 const HOOK_NAME = "accept";
 
@@ -14,23 +14,15 @@ describe("accept.rs", () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
-    console.log(1);
     client.networkID = await client.getNetworkID();
-    console.log(2);
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    console.log(3);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // Because Faucet only allows one account to be created every 60 seconds,
+    // we will use the following accounts for testing. Change the secrets when
+    // running out of funds.
+    // rULqKiLvbGda4VKAqsto5hxmmDavJm2oav
+    alice = Wallet.fromSecret(`shW8QFpXBGGh86mjdkpMTKk54kqwh`);
+    // rnvgdKhaMnLtNMZmGAkKq1VNUx25Qg8Vxz
+    bob = Wallet.fromSecret(`snSRRGDAgcUB9F4JWgx2YCt6aS7h3`);
+
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 

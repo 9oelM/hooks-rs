@@ -18,16 +18,24 @@ const exec = util.promisify(execWithCallback);
 const readFile = util.promisify(readFileWithCallback);
 
 interface FaucetSuccessResponse {
-  // address: 'rPgAY3v5Zag1QK1xgK2YD76drhTiAd6gCE',
-  address: string;
-  // secret: 'shPBScW8cqfebyDDGvrqfvJbefWvL',
-  secret: string;
-  // xrp: 10000,
-  xrp: number;
-  // hash: 'D5DE850DC1B8235D8F91B9A56AB528EAADB1089050EB8DBF7C4C7C559EF3A152',
-  hash: string;
-  // code: 'tesSUCCESS'
-  code: string;
+  account: {
+    //     "xAddress": "XV5CC9AbwcsBYScgsjxWpe5VMooGZ8n8NMmaNuhUbqHPozq",
+    xAddress: string;
+    //     "secret": "snTePLtQua9MaLMsRxWuKMQVJV4XP",
+    secret: string;
+    //     "classicAddress": "rPSTDHkr2n9Fq7jza5Ei1nCoSMVanfLXpV",
+    classicAddress: string;
+    // address: 'rPgAY3v5Zag1QK1xgK2YD76drhTiAd6gCE',
+    address: string;
+  };
+  amount: number;
+  balance: number;
+  trace: {
+    //     "hash": "236A497826E877596EED24A9E4A59F4E47196DAB09162FA027DFF3A7487E8CD2",
+    hash: string;
+    //     "code": "tesSUCCESS"
+    code: string;
+  };
 }
 
 interface FaucetErrorResponse {
@@ -39,7 +47,7 @@ export class Faucet {
   static async getNewAccount(): Promise<
     FaucetSuccessResponse | FaucetErrorResponse
   > {
-    return fetch(`https://hooks-testnet-v3.xrpl-labs.com/newcreds`, {
+    return fetch(`https://xahau-test.net/accounts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,12 +64,15 @@ export class Faucet {
         // ignore errors
       } catch (e) {}
 
-      if ((resp && "error" in resp) || !resp) {
+      if (resp && "error" in resp && resp.error.includes(`you must wait`)) {
         await new Promise((resolve) => setTimeout(resolve, 5000));
         tries++;
         continue;
+      } else if (resp && "account" in resp) {
+        return resp;
+      } else {
+        throw new Error(`Unknown error: ${JSON.stringify(resp)}`);
       }
-      return resp;
     }
 
     throw new Error(`Could not get new account after ${tries} tries`);
@@ -107,10 +118,7 @@ export class TestUtils {
     await Promise.all([
       exec(
         `wasm2wat ${wasmInFile} -o ${
-          path.resolve(
-            debugDir,
-            `${hookName}.wat`,
-          )
+          path.resolve(debugDir, `${hookName}.wat`)
         }`,
       ),
       exec(
