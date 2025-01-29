@@ -25,9 +25,9 @@ describe("accept.rs", () => {
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
-  // afterAll(async () => {
-  //   await client.disconnect();
-  // }, 10_000);
+  afterAll(async () => {
+    await client.disconnect();
+  }, 10_000);
 
   it(
     "accepts an incoming txn",
