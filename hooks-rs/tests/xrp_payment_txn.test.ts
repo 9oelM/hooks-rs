@@ -1,6 +1,6 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 
 const HOOK_NAME = "xrp_payment_txn";
@@ -14,23 +14,11 @@ describe("xrp_payment_txn.rs", () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
-    console.log(1);
     client.networkID = await client.getNetworkID();
-    console.log(2);
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    console.log(3, secret0, secret1);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // rhoh3g6As6MdR7nrbnyiPBig8mriDJDdXN
+    alice = Wallet.fromSecret(`ssiRvVtZMhr989j2BMVqmGkYPP1cC`);
+    // rUVWhZnU2AYWYXzHpCUcSVtcuuNXkuDD1X
+    bob = Wallet.fromSecret(`snudyVMLzKNzXZ9HbzdiNFzfDKP2F`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -39,7 +27,7 @@ describe("xrp_payment_txn.rs", () => {
   }, 10_000);
 
   it(
-    `alice pays 1000 XRP to bob`,
+    `alice pays 1000 drops of XRP to bob`,
     async () => {
       const {
         result: {

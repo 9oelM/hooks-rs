@@ -1,6 +1,6 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 
 const HOOK_NAME = "util_raddr";
@@ -15,19 +15,11 @@ describe("util_raddr.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+
+    // rHvPxERqTjFTeydCkYVBjEdURf4MeW7rWN
+    alice = Wallet.fromSecret(`shqPWeDjqgSp87wxidV6nYR5qzSNt`);
+    // rh41GcuurC14yBr71Y48nMiriCz7oFsKM9
+    bob = Wallet.fromSecret(`ssXniQYTWZWiNo2kHpetU2GcknBiQ`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -73,7 +65,8 @@ describe("util_raddr.rs", () => {
         TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
       ).toBe(0n);
       expect(HookReturnString).toMatch(
-        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`.toUpperCase(),
+        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`
+          .toUpperCase(),
       );
     },
     3 * 60_000,

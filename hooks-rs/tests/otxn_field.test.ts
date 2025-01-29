@@ -6,7 +6,7 @@ import {
   Transaction,
   Wallet,
 } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 
 const HOOK_NAME = "otxn_field";
@@ -21,19 +21,8 @@ describe("otxn_field.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    alice = Wallet.fromSecret(`safLypKBXLep79WHQAgBBX768fWTM`);
+    bob = Wallet.fromSecret(`shmJuax8iUq3PNStgSeyq5xwbMzbM`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 

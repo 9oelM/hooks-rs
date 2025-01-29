@@ -52,7 +52,7 @@ export class Faucet {
   static async getNewAccount(): Promise<
     FaucetSuccessResponse | FaucetErrorResponse
   > {
-    return fetch(`https://xahau-test.net/accounts`, {
+    return await fetch(`https://xahau-test.net/accounts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

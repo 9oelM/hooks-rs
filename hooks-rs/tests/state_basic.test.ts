@@ -6,7 +6,7 @@ import {
   Transaction,
   Wallet,
 } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 import { iHook, padHexString, StateUtility } from "@transia/hooks-toolkit";
 
@@ -26,19 +26,10 @@ describe("state_basic.rs", () => {
   }, 3 * 60_000);
 
   beforeEach(async () => {
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // rfv8LQPv4a7DbmvjGBqW2TSEt864wJ5Vgf
+    alice = Wallet.fromSecret(`snoUzNNV2m3K9dW7oJEebmRSkHsHX`);
+    // r4gLsVufLvPsEUGkAPEeateoLLmeT7esPn
+    bob = Wallet.fromSecret(`snbFSGYKuzrTjLtwmQtzd32PtcmJ4`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 

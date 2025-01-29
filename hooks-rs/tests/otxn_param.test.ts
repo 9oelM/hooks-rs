@@ -1,6 +1,6 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 import {
   iHookParamEntry,
@@ -20,19 +20,10 @@ describe("oxtn_param.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    //
+    alice = Wallet.fromSecret(`sn1YbwYB2eurfpDkLiTgzUVFBgV4f`);
+    // rJCr4EiJ6fAeo6Gxn6b6UPqJaLqRBvh6mg
+    bob = Wallet.fromSecret(`ssTGwPho3ND79Mv9miY868LqAqNpG`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 

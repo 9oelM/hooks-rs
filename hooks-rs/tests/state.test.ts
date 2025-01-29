@@ -1,6 +1,6 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 import { padHexString, StateUtility } from "@transia/hooks-toolkit";
 
@@ -16,19 +16,10 @@ describe("state.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // rHZBYi9RLCsM6oW9L6A8vMWSBfoiagRH6m
+    alice = Wallet.fromSecret(`ssDhYg2KDrCh7FHWvkuVr2PXd5kfw`);
+    // rhoh3g6As6MdR7nrbnyiPBig8mriDJDdXN
+    bob = Wallet.fromSecret(`ssiRvVtZMhr989j2BMVqmGkYPP1cC`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 

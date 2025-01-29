@@ -14,7 +14,6 @@ export interface PrerequisitesInstallationStatus {
   cargo: boolean;
   "wasm-opt": boolean;
   "hook-cleaner": boolean;
-  wasm2wat: boolean;
   guard_checker: boolean;
   "wasm-pack": boolean;
 }
@@ -59,7 +58,6 @@ export async function checkPrerequisitesInstalled() {
     cargo: false,
     [`wasm-opt`]: false,
     [`hook-cleaner`]: false,
-    [`wasm2wat`]: false,
     [`guard_checker`]: false,
     [`wasm-pack`]: false,
   };
@@ -267,95 +265,6 @@ export async function installWasmPack() {
   await Deno.remove(tmpDir, { recursive: true });
 }
 
-async function installWasm2Wat() {
-  const tempDirPath = await Deno.makeTempDir();
-
-  switch (Deno.build.os) {
-    case "windows":
-      throw new Error(`Windows is not supported yet.`);
-    default:
-      switch (Deno.build.os) {
-        case `darwin`: {
-          const downloadedFile = await download(
-            "https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-macos-12.tar.gz",
-            {
-              dir: tempDirPath,
-              file: `wabt-1.0.34-macos-12.tar.gz`,
-            },
-          );
-          const command = new Deno.Command(`tar`, {
-            args: [
-              `-xzf`,
-              downloadedFile.fullPath,
-            ],
-            stderr: `piped`,
-            stdout: `piped`,
-            cwd: tempDirPath,
-          });
-          const child = command.spawn();
-
-          // Read stdout and stderr as text
-          const [status] = await Promise.all([
-            child.status,
-            child.stdout
-              ? new Response(child.stdout).text()
-              : Promise.resolve(""),
-            child.stderr
-              ? new Response(child.stderr).text()
-              : Promise.resolve(""),
-          ]);
-
-          if (!status.success) {
-            console.error(`Command failed with status code ${status.code}`);
-          }
-
-          Logger.log(`info`, `Extracted wabt-1.0.34-macos-12.tar.gz`);
-          break;
-        }
-        default: {
-          await download(
-            // just try ubuntu for now
-            "https://github.com/WebAssembly/wabt/releases/download/1.0.34/wabt-1.0.34-ubuntu.tar.gz",
-            {
-              dir: tempDirPath,
-              file: `wabt-1.0.34-ubuntu.tar.gz`,
-            },
-          );
-          await Logger.handleOutput(
-            new Deno.Command(`tar`, {
-              args: [
-                `-xzf`,
-                `wabt-1.0.34-ubuntu.tar.gz`,
-              ],
-              cwd: tempDirPath,
-              stderr: `piped`,
-              stdout: `piped`,
-            }).spawn(),
-          );
-          break;
-        }
-      }
-      await Deno.chmod(
-        path.join(tempDirPath, `wabt-1.0.34`, `bin`, `wasm2wat`),
-        0o755,
-      );
-      // the whole directory needs to be moved due to include files
-      if (!(await pathExists(`/usr/local/wabt-1.0.34`))) {
-        await Deno.rename(
-          path.join(tempDirPath, `wabt-1.0.34`),
-          `/usr/local/wabt-1.0.34`,
-        );
-      }
-      if (!(await pathExists(`/usr/local/bin/wasm2wat`))) {
-        await Deno.symlink(
-          path.join(`/usr/local/wabt-1.0.34`, `bin`, `wasm2wat`),
-          `/usr/local/bin/wasm2wat`,
-        );
-      }
-  }
-  await Deno.remove(tempDirPath, { recursive: true });
-}
-
 export async function installPrerequisite(
   prerequisite: keyof PrerequisitesInstallationStatus,
 ) {
@@ -380,11 +289,6 @@ Refer to https://forge.rust-lang.org/infra/other-installation-methods.html for m
       Logger.log(`info`, `Installing hook-cleaner`);
       await installHookCleaner();
       Logger.log(`success`, `Installed hook-cleaner`);
-      break;
-    case "wasm2wat":
-      Logger.log(`info`, `Installing wasm2wat`);
-      await installWasm2Wat();
-      Logger.log(`success`, `Installed wasm2wat`);
       break;
     case "guard_checker":
       Logger.log(`info`, `Installing guard_checker`);
@@ -418,15 +322,6 @@ async function uninstallWasmOpt() {
   }
 }
 
-async function uninstallWasm2wat() {
-  if (await pathExists(`/usr/local/wabt-1.0.34`)) {
-    await Deno.remove(`/usr/local/wabt-1.0.34`, { recursive: true });
-  }
-  if (await pathExists(`/usr/local/bin/wasm2wat`)) {
-    await uninstallBinary(`wasm2wat`);
-  }
-}
-
 export async function uninstallPrerequisite(
   prerequisite: keyof PrerequisitesInstallationStatus,
 ) {
@@ -440,11 +335,6 @@ export async function uninstallPrerequisite(
       Logger.log(`info`, `Uninstalling hook-cleaner`);
       await uninstallBinary(`hook-cleaner`);
       Logger.log(`success`, `Uninstalled hook-cleaner`);
-      break;
-    case "wasm2wat":
-      Logger.log(`info`, `Uninstalling wasm2wat`);
-      await uninstallWasm2wat();
-      Logger.log(`success`, `Uninstalled wasm2wat`);
       break;
     case "guard_checker":
       Logger.log(`info`, `Uninstalling guard_checker`);
