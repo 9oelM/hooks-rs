@@ -2,9 +2,9 @@ import { Logger } from "../misc/mod.ts";
 import { TypedObjectKeys } from "../types/utils.ts";
 // @deno-types="../types/command_exists.d.ts"
 import commandExists from "npm:command-exists@1.2.9";
-import * as path from "jsr:@std/path";
-import { download } from "download/mod.ts";
+import * as path from "jsr:@std/path@1.0.8";
 import { pathExists } from "../misc/utils.ts";
+import { downloadFile } from "./download.ts";
 
 // "cargo 1.75.0-nightly"
 export const CARGO_VERSION_NIGHTLY_REGEX = /cargo\s\d+\.\d+\.\d+-nightly/;
@@ -126,9 +126,10 @@ async function installWasmOpt() {
   }
 
   const downloadUrl = createBinaryenDownloadUrl(target);
-  await download(downloadUrl, {
-    dir: tmpDir,
-    file: BINARYEN_VERSION_STR,
+  await downloadFile({
+    url: downloadUrl,
+    targetDir: tmpDir,
+    fileName: BINARYEN_VERSION_STR,
   });
   await Logger.handleOutput(
     new Deno.Command(`tar`, {
@@ -247,10 +248,11 @@ async function installGuardChecker() {
 
 export async function installWasmPack() {
   const tmpDir = await Deno.makeTempDir();
-  await download(
-    `https://rustwasm.github.io/wasm-pack/installer/init.sh`,
+  await downloadFile(
     {
-      dir: tmpDir,
+      url: `https://rustwasm.github.io/wasm-pack/installer/init.sh`,
+      targetDir: tmpDir,
+      fileName: `init.sh`,
     },
   );
   await Logger.handleOutput(
