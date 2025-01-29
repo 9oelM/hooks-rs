@@ -113,7 +113,11 @@ async function fetchFundedTestnetAccount(): Promise<
     } else {
       Logger.log(
         `error`,
-        `Could not create prefunded testnet account due to unexpected json object: "${responseJson}"`,
+        `Could not create prefunded testnet account due to unexpected json object: "${
+          typeof responseJson === "object"
+            ? JSON.stringify(responseJson, null, 2)
+            : responseJson
+        }"`,
       );
     }
   } catch (_e) {

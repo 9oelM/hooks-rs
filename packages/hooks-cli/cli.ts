@@ -18,12 +18,9 @@ import { Account } from "./account/mod.ts";
 import { pathExists } from "./misc/utils.ts";
 import DefaultWallet from "npm:@transia/xrpl/dist/npm/Wallet/index.js";
 import { Client } from "npm:@transia/xrpl/dist/npm/client/index.js";
-import { SetHook, SetHookFlags } from "npm:@transia/xrpl";
+import { SetHook } from "npm:@transia/xrpl";
 import { HookPayload } from "./types/mod.ts";
-import {
-  getTransactionFee,
-  submitAndWaitWithRetries,
-} from "./hooks_builder/hooks_builder.ts";
+import { getTransactionFee } from "./hooks_builder/hooks_builder.ts";
 const Wallet = DefaultWallet.default;
 
 // Export for testing
@@ -84,66 +81,16 @@ export const cli = await new Command()
     rpc,
     hookOn,
   }) => {
-    const {
-      hookOn: hookOnTTSet,
-    } = validateDeployOptions({
+    if (typeof hookOn === `boolean`) {
+      throw new Error(
+        `HookOn field must be a list of transaction tyes. For example: --hook-on PAYMENT TICKET_CREATE INVOKE`,
+      );
+    }
+
+    await deploy({
       rpc,
       hookOn,
     });
-
-    const hookOnFieldHex = new HookOnField().fromSet(new Set(hookOnTTSet))
-      .toHex();
-
-    const client = new Client(rpc, {});
-    await client.connect();
-    client.networkID = await client.getNetworkID();
-
-    const account = await Account.load();
-    if (!account) {
-      Logger.log(
-        `error`,
-        `Could not load account from account.json`,
-      );
-      Deno.exit(1);
-    }
-
-    const hookPayload = await build();
-
-    if (!hookPayload) {
-      Logger.log(
-        `error`,
-        `Could not build hook.`,
-      );
-      Deno.exit(1);
-    }
-
-    hookPayload.HookOn = hookOnFieldHex.toUpperCase();
-
-    Logger.log(`info`, `Hook payload: ${JSON.stringify(hookPayload, null, 2)}`);
-
-    const submitResponse = await setHook(
-      client,
-      account.secret,
-      hookPayload,
-    );
-
-    if (
-      typeof submitResponse.result.meta === `object` &&
-      submitResponse.result.meta !== null &&
-      `TransactionResult` in submitResponse.result.meta &&
-      submitResponse.result.meta.TransactionResult === "tesSUCCESS"
-    ) {
-      Logger.log(
-        `success`,
-        `Successfully deployed hook`,
-      );
-    } else {
-      Logger.log(
-        `error`,
-        `Could not deploy hook: ${JSON.stringify(submitResponse, null, 2)}`,
-      );
-      Deno.exit(1);
-    }
   })
   .command(
     `uninstall`,
@@ -437,6 +384,77 @@ export async function uninstall() {
   }
 
   await Promise.all(uninstallations);
+}
+
+export async function deploy({
+  rpc,
+  hookOn,
+}: {
+  rpc: string;
+  hookOn: string[];
+}) {
+  const {
+    hookOn: hookOnTTSet,
+  } = validateDeployOptions({
+    rpc,
+    hookOn,
+  });
+
+  const hookOnFieldHex = new HookOnField().fromSet(new Set(hookOnTTSet))
+    .toHex();
+
+  const client = new Client(rpc, {});
+  await client.connect();
+  client.networkID = await client.getNetworkID();
+
+  const account = await Account.load();
+  if (!account) {
+    Logger.log(
+      `error`,
+      `Could not load account from account.json`,
+    );
+    Deno.exit(1);
+  }
+
+  const hookPayload = await build();
+
+  if (!hookPayload) {
+    Logger.log(
+      `error`,
+      `Could not build hook.`,
+    );
+    Deno.exit(1);
+  }
+
+  hookPayload.HookOn = hookOnFieldHex.toUpperCase();
+
+  Logger.log(`info`, `Hook payload: ${JSON.stringify(hookPayload, null, 2)}`);
+
+  const submitResponse = await setHook(
+    client,
+    account.secret,
+    hookPayload,
+  );
+
+  await client.disconnect();
+
+  if (
+    typeof submitResponse.result.meta === `object` &&
+    submitResponse.result.meta !== null &&
+    `TransactionResult` in submitResponse.result.meta &&
+    submitResponse.result.meta.TransactionResult === "tesSUCCESS"
+  ) {
+    Logger.log(
+      `success`,
+      `Successfully deployed hook`,
+    );
+  } else {
+    Logger.log(
+      `error`,
+      `Could not deploy hook: ${JSON.stringify(submitResponse, null, 2)}`,
+    );
+    Deno.exit(1);
+  }
 }
 
 async function setHook(client: Client, secret: string, hook: HookPayload) {
