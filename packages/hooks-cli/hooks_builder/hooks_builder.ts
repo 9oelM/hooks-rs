@@ -41,12 +41,12 @@ async function createHookPayload(
   version?: number | null,
   namespace?: string | null,
   flags?: number | 0,
-  hookOn = `0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffbfffff`,
+  HookOn = `0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffbfffff`,
   hookParams?: HookParameter[] | null,
   hookGrants?: HookGrant[] | null,
 ): Promise<HookPayload> {
   const hook = {
-    hookOn,
+    HookOn,
   } as HookPayload;
   if (typeof version === "number") {
     hook.HookApiVersion = version;

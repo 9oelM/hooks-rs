@@ -4,7 +4,7 @@ import { HookOnField, XrplTransactionType } from "../hooks_builder/mod.ts";
 Deno.test(`Should initialize default HookOn field`, () => {
   const hookOnField = new HookOnField().fromEmpty();
   const expected =
-    `0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffbfffff`;
+    `ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffbfffff`;
   const actual = hookOnField.toHex();
   assertEquals(actual, expected);
 });
@@ -18,17 +18,17 @@ Deno.test(`Should create HookOn field from a set of transaction types`, () => {
   ];
   const hookOnField = new HookOnField().fromSet(new Set(ttList));
   const expected =
-    `0xffffffffffffffffffffffffffffffffffffffffffffffffffffdfffff9bfffe`;
+    `ffffffffffffffffffffffffffffffffffffffffffffffffffffdfffff9bfffe`;
   const actual = hookOnField.toHex();
   assertEquals(actual, expected);
 });
 
 Deno.test(`Should create HookOn field from hex string`, () => {
   const hex =
-    `0xffffffffffffffffffffffffffffffffffffffffffffffffffffdfffff9bfffe`;
+    `ffffffffffffffffffffffffffffffffffffffffffffffffffffdfffff9bfffe`;
   const hookOnField = new HookOnField().fromHex(hex);
   const expected =
-    `0xffffffffffffffffffffffffffffffffffffffffffffffffffffdfffff9bfffe`;
+    `ffffffffffffffffffffffffffffffffffffffffffffffffffffdfffff9bfffe`;
   const actual = hookOnField.toHex();
   assertEquals(actual, expected);
 });

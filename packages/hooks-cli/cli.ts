@@ -18,8 +18,8 @@ import { Account } from "./account/mod.ts";
 import { pathExists } from "./misc/utils.ts";
 import DefaultWallet from "npm:@transia/xrpl/dist/npm/Wallet/index.js";
 import { Client } from "npm:@transia/xrpl/dist/npm/client/index.js";
+import { SetHook, SetHookFlags } from "npm:@transia/xrpl";
 import { HookPayload } from "./types/mod.ts";
-import { SetHook, SetHookFlags } from "@transia/xrpl";
 import {
   getTransactionFee,
   submitAndWaitWithRetries,
@@ -68,10 +68,10 @@ export const cli = await new Command()
   })
   .command(
     `deploy`,
-    `Deploy a built hook to Xahau network`,
+    `Build and deploy a hook to Xahau network`,
   )
   .option("--rpc <rpc:string>", "Websocket RPC endpoint for deployment", {
-    default: getRpcUrl(Network.Network.XahauTestnet),
+    default: getRpcUrl(Network.Network.XahauTestnet, true),
   })
   .option(
     "--hook-on [transactionTypes...:string]",
@@ -91,7 +91,7 @@ export const cli = await new Command()
       hookOn,
     });
 
-    const hookOnField0xHex = new HookOnField().fromSet(new Set(hookOnTTSet))
+    const hookOnFieldHex = new HookOnField().fromSet(new Set(hookOnTTSet))
       .toHex();
 
     const client = new Client(rpc, {});
@@ -117,7 +117,9 @@ export const cli = await new Command()
       Deno.exit(1);
     }
 
-    hookPayload.HookOn = hookOnField0xHex;
+    hookPayload.HookOn = hookOnFieldHex.toUpperCase();
+
+    Logger.log(`info`, `Hook payload: ${JSON.stringify(hookPayload, null, 2)}`);
 
     const submitResponse = await setHook(
       client,
@@ -126,20 +128,19 @@ export const cli = await new Command()
     );
 
     if (
-      `meta` in submitResponse && typeof submitResponse.meta === `object` &&
-      submitResponse.meta !== null &&
-      `TransactionResult` in submitResponse.meta &&
-      submitResponse.meta.TransactionResult === "tesSUCCESS"
+      typeof submitResponse.result.meta === `object` &&
+      submitResponse.result.meta !== null &&
+      `TransactionResult` in submitResponse.result.meta &&
+      submitResponse.result.meta.TransactionResult === "tesSUCCESS"
     ) {
       Logger.log(
         `success`,
         `Successfully deployed hook`,
       );
-      console.log(JSON.stringify(submitResponse, null, 2));
     } else {
       Logger.log(
         `error`,
-        `Could not deploy hook: ${JSON.stringify(submitResponse)}`,
+        `Could not deploy hook: ${JSON.stringify(submitResponse, null, 2)}`,
       );
       Deno.exit(1);
     }
@@ -445,21 +446,17 @@ async function setHook(client: Client, secret: string, hook: HookPayload) {
     TransactionType: `SetHook`,
     Account: wallet.address,
     Hooks: [{ Hook: hook }],
-    Flags: SetHookFlags.hsfOverride | SetHookFlags.hsfNSDelete,
   };
 
-  const fee = await getTransactionFee(client, tx);
+  const { Fee: _, ...rest } = await client.autofill(tx);
+  const fee = await getTransactionFee(client, rest);
   tx.Fee = fee;
 
-  const submitResponse = await submitAndWaitWithRetries(
-    client,
-    tx,
-    {
-      wallet,
-      failHard: true,
-      autofill: true,
-    },
-  );
+  const result = await client.submitAndWait(tx, {
+    wallet,
+    failHard: true,
+    autofill: true,
+  });
 
-  return submitResponse;
+  return result;
 }

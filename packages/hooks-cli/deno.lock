@@ -14,7 +14,7 @@
     "jsr:@std/text@~1.0.7": "1.0.10",
     "jsr:@std/toml@*": "1.0.2",
     "npm:@transia/xrpl@*": "2.7.3-alpha.28",
-    "npm:@transia/xrpl@^2.7.3-alpha.28": "2.7.3-alpha.28",
+    "npm:@transia/xrpl@^2.7.3-alpha.10": "2.7.3-alpha.28",
     "npm:command-exists@*": "1.2.9"
   },
   "jsr": {
@@ -641,7 +641,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
-      "npm:@transia/xrpl@^2.7.3-alpha.28"
+      "npm:@transia/xrpl@^2.7.3-alpha.10"
     ]
   }
 }
