@@ -89,7 +89,6 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
     `wasm32-unknown-unknown`,
     `release`,
   );
-  const debugDir = path.join(Deno.cwd(), "target");
   const wasmInFile = path.join(wasmDir, `${hookName}.wasm`);
   const wasmOutFlattened = path.join(
     wasmDir,

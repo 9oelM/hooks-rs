@@ -14,6 +14,7 @@ import {
 import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
 import { Account } from "./account/mod.ts";
+import { pathExists } from "./misc/utils.ts";
 
 // Export for testing
 export const cli = await new Command()
@@ -84,6 +85,11 @@ export const cli = await new Command()
 WARNING: if you have other projects using the prerequisite binaries or if you have installed the binaries yourself in the past, those binaries will be removed and may cause you problems)`,
   )
   .action(uninstall)
+  .command(
+    `test`,
+    `Run tests for the project`,
+  )
+  .action(test)
   .parse(Deno.args);
 
 // Print help on no arguments or subcommand.
@@ -253,7 +259,49 @@ export async function check() {
     wasm32UnknownUnknownTargetInstalled;
 }
 
-async function test() {}
+async function test() {
+  // exists ./package.json?
+  if (!(await pathExists("./package.json"))) {
+    Logger.log(
+      `error`,
+      `package.json not found. Are you in the root of a hooks project?`,
+    );
+    Deno.exit(1);
+  }
+
+  // run npm test
+  const process = new Deno.Command("npm", {
+    args: ["test"],
+    stdout: "piped",
+    stderr: "piped",
+  }).spawn();
+
+  // Function to stream output
+  async function streamOutput(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    prefix: string,
+  ) {
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      console.log(`${prefix}${decoder.decode(value)}`);
+    }
+  }
+
+  // Stream stdout and stderr in real time
+  await Promise.all([
+    streamOutput(process.stdout.getReader(), ""), // Standard output
+    streamOutput(process.stderr.getReader(), "Error: "), // Standard error
+  ]);
+
+  // Wait for the process to complete
+  const status = await process.status;
+  if (!status.success) {
+    console.error("npm test failed.");
+    Deno.exit(1);
+  }
+}
 
 /**
  * @throws Error if invalid options are supplied
