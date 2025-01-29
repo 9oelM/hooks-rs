@@ -70,7 +70,7 @@ pub extern "C" fn hook(_: u32) -> i64 {
 }
 ```
 
-[Other examples are under `/examples` directory. Check them out!](./examples/).
+[Other examples are under `/examples` directory. Check them out!](./hooks-rs/examples).
 
 ## Documentation
 
