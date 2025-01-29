@@ -10,10 +10,10 @@ WORKDIR /app
 RUN apt-get update
 
 RUN apt-get install -y \
-  build-essential \
-  curl \
-  bash \
-  software-properties-common
+    build-essential \
+    curl \
+    bash \
+    software-properties-common
 RUN apt-get update
 # git
 RUN apt-get install -y git
@@ -46,4 +46,15 @@ RUN apt clean && \
 
 # Step 7: Clean up APT cache to reduce image size
 RUN apt clean && \
-rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
+
+ENV NODE_VERSION=22.10.0
+RUN apt install -y curl
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+ENV NVM_DIR=/root/.nvm
+RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
+ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
+RUN node --version
+RUN npm --version

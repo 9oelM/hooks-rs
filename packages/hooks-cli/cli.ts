@@ -1,4 +1,4 @@
-import { Command } from "jsr:@cliffy/command@1.0.0-rc.7";
+import { Command, type CommandResult } from "jsr:@cliffy/command@1.0.0-rc.7";
 import * as path from "jsr:@std/path";
 import commandExists from "npm:command-exists";
 import { Logger } from "./misc/logger.ts";
@@ -10,7 +10,6 @@ import {
   HookOnField,
   HooksBuilder,
   isXrplTransactionType,
-  XrplTransactionType,
 } from "./hooks_builder/mod.ts";
 import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
@@ -18,13 +17,22 @@ import { Account } from "./account/mod.ts";
 import { pathExists } from "./misc/utils.ts";
 import DefaultWallet from "npm:@transia/xrpl/dist/npm/Wallet/index.js";
 import { Client } from "npm:@transia/xrpl/dist/npm/client/index.js";
-import { SetHook } from "npm:@transia/xrpl";
-import { HookPayload } from "./types/mod.ts";
+import type { SetHook } from "npm:@transia/xrpl";
+import type { HookPayload } from "./types/mod.ts";
 import { getTransactionFee } from "./hooks_builder/hooks_builder.ts";
 const Wallet = DefaultWallet.default;
 
 // Export for testing
-export const cli = await new Command()
+export const cli: CommandResult<
+  Record<string, unknown>,
+  unknown[],
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  undefined
+> = await new Command()
   .name("hooks")
   .version("0.0.2")
   .meta(`author`, `https://github.com/9oelm`)
@@ -217,7 +225,7 @@ export async function up() {
   await check();
 }
 
-export async function build() {
+export async function build(): Promise<HookPayload | undefined> {
   const parsedCargoToml = await readCargoToml();
   if (isMinimalCargoToml(parsedCargoToml)) {
     const { name } = parsedCargoToml.package;
@@ -234,7 +242,7 @@ export async function build() {
   }
 }
 
-export async function check() {
+export async function check(): Promise<boolean> {
   const prerequisitesInstallationStatus = await DependenciesManager
     .checkPrerequisitesInstalled();
 
@@ -336,7 +344,10 @@ export function validateDeployOptions({
   rpc: string;
   // Follows the auto inferred type from cliffy
   hookOn: true | string[];
-}) {
+}): {
+  hookOn: Set<string | number | symbol>;
+  rpc: URL;
+} {
   if (!Array.isArray(hookOn) || hookOn.length === 0) {
     throw new Error(
       `HookOn field must be a list of transaction tyes. For example:

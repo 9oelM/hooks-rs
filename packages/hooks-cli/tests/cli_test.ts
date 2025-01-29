@@ -19,16 +19,27 @@ Deno.test(`[new] command should create a new template project`, async () => {
     `tests`,
     `Cargo.toml`,
     `README.md`,
+    `jest.config.js`,
+    `package.json`,
+    `package-lock.json`,
+    `.nvmrc`,
     `rust-toolchain.toml`,
   ]);
+  const dirEntires = new Set<string>();
 
   const tmpDir = await Deno.makeTempDir();
   Deno.chdir(tmpDir);
   await newProject(undefined, `example-project-name`);
   const templateProjectPath = path.join(tmpDir, `example-project-name`);
   for await (const dirEntry of Deno.readDir(templateProjectPath)) {
-    assert(templateProjectEntries.has(dirEntry.name));
+    dirEntires.add(dirEntry.name);
   }
+
+  assert(
+    templateProjectEntries.isSubsetOf(dirEntires),
+    `There are missing entries`,
+  );
+
   await Deno.remove(templateProjectPath, {
     recursive: true,
   });
@@ -84,6 +95,8 @@ Deno.test(`[up] command should install partially missing dependencies`, async ()
 });
 
 Deno.test(`[build] command should build hooks-rs project`, async () => {
+  await up();
+
   const templateProjectEntries = new Set([
     `.cargo`,
     `src`,

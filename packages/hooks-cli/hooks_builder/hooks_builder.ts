@@ -2,7 +2,7 @@ import * as path from "jsr:@std/path";
 import * as xrpl from "npm:@transia/xrpl";
 import { getFeeEstimateXrp } from "npm:@transia/xrpl/dist/npm/sugar/index.js";
 import { Hex, Logger } from "../misc/mod.ts";
-import { HookGrant, HookParameter, HookPayload } from "../types/hooks.ts";
+import type { HookGrant, HookParameter, HookPayload } from "../types/hooks.ts";
 
 async function hexNamespace(hookNamespaceSeed: string): Promise<string> {
   const data = new TextEncoder().encode(hookNamespaceSeed);

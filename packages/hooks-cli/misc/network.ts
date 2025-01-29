@@ -8,7 +8,7 @@ const TESTNET_HTTP_RPC_URL = "https://xahau-test.net";
 const MAINNET_WS_RPC_URL = "wss://xahau.network";
 const MAINNET_HTTP_RPC_URL = "https://xahau.network";
 
-export function getRpcUrl(network: Network, ws?: boolean) {
+export function getRpcUrl(network: Network, ws?: boolean): string {
   switch (network) {
     case Network.XahauTestnet:
       if (ws) {
