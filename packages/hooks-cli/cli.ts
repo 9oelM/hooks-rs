@@ -10,6 +10,7 @@ import {
   HookOnField,
   HooksBuilder,
   isXrplTransactionType,
+  type XrplTransactionType,
 } from "./hooks_builder/mod.ts";
 import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
