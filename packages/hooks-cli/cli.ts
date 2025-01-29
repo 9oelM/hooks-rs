@@ -35,7 +35,7 @@ export const cli: CommandResult<
   undefined
 > = await new Command()
   .name("hooks")
-  .version("0.1.2")
+  .version("0.1.3")
   .meta(`author`, `https://github.com/9oelm`)
   .meta(`project`, `https://github.com/9oelm/hooks-rs`)
   .description("CLI for hooks-rs")

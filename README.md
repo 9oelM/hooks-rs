@@ -70,7 +70,7 @@ pub extern "C" fn hook(_: u32) -> i64 {
 }
 ```
 
-[Other examples are under `/examples` directory. Check them out!](./examples/).
+[Other examples are under `/examples` directory. Check them out!](./hooks-rs/examples).
 
 ## Documentation
 
@@ -78,6 +78,27 @@ Most implementations are thoroughly documented. Please check out the book and cr
 
 - [The book](https://9oelm.github.io/hooks-rs/)
 - [Crate docs](https://docs.rs/hooks-rs/latest/hooks_rs/)
+- [Xahau docs](https://docs.xahau.network/)
+
+## Running with Docker
+
+Sometimes, it might be tricky to install the CLI right on your machine and run it because it installs several binaries in your system, which might sometimes go weird. In such a case, use [`9oel/hooks-cli:latest`](https://hub.docker.com/r/9oel/hooks-cli) to run the CLI without having to affect your local machine, like this:
+
+```bash
+docker run \
+  --init \
+  -p 1993:1993 \
+  -v $PWD:/app \
+  9oel/hooks-cli:latest hooks new my-project
+
+cd my-project
+
+docker run \
+  --init \
+  -p 1993:1993 \
+  -v $PWD:/app \
+  9oel/hooks-cli:latest hooks build
+```
 
 ## Supported functions
 
