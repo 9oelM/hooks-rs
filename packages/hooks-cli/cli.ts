@@ -1,10 +1,10 @@
 import { Command, type CommandResult } from "jsr:@cliffy/command@1.0.0-rc.7";
-import * as path from "jsr:@std/path";
-import commandExists from "npm:command-exists";
+import * as path from "jsr:@std/path@1.0.8";
+import commandExists from "npm:command-exists@1.2.9";
 import { Logger } from "./misc/logger.ts";
 import { isMinimalCargoToml, readCargoToml } from "./misc/cargo_toml.ts";
 import { TypedObjectKeys } from "./types/utils.ts";
-import { copy } from "jsr:@std/fs";
+import { copy } from "jsr:@std/fs@1.0.10";
 import { DependenciesManager } from "./dependencies_manager/mod.ts";
 import {
   HookOnField,
@@ -16,9 +16,9 @@ import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
 import { Account } from "./account/mod.ts";
 import { pathExists } from "./misc/utils.ts";
-import DefaultWallet from "npm:@transia/xrpl/dist/npm/Wallet/index.js";
-import { Client } from "npm:@transia/xrpl/dist/npm/client/index.js";
-import type { SetHook } from "npm:@transia/xrpl";
+import DefaultWallet from "npm:@transia/xrpl@2.7.3-alpha.28/dist/npm/Wallet/index.js";
+import { Client } from "npm:@transia/xrpl@2.7.3-alpha.28/dist/npm/client/index.js";
+import type { SetHook } from "npm:@transia/xrpl@2.7.3-alpha.28";
 import type { HookPayload } from "./types/mod.ts";
 import { getTransactionFee } from "./hooks_builder/hooks_builder.ts";
 const Wallet = DefaultWallet.default;
