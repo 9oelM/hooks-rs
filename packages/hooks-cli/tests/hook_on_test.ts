@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { HookOnField } from "../hooks_builder/mod.ts";
+import { HookOnField, type XrplTransactionType } from "../hooks_builder/mod.ts";
 
 Deno.test(`Should initialize default HookOn field`, () => {
   const hookOnField = new HookOnField().fromEmpty();
