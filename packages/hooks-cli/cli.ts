@@ -346,7 +346,7 @@ export function validateDeployOptions({
   // Follows the auto inferred type from cliffy
   hookOn: true | string[];
 }): {
-  hookOn: Set<string | number | symbol>;
+  hookOn: Set<keyof typeof XrplTransactionType>;
   rpc: URL;
 } {
   if (!Array.isArray(hookOn) || hookOn.length === 0) {
