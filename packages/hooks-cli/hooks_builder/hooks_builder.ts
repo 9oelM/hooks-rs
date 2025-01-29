@@ -1,6 +1,6 @@
-import * as path from "jsr:@std/path";
-import * as xrpl from "npm:@transia/xrpl";
-import { getFeeEstimateXrp } from "npm:@transia/xrpl/dist/npm/sugar/index.js";
+import * as path from "jsr:@std/path@1.0.8";
+import * as xrpl from "npm:@transia/xrpl@2.7.3-alpha.28";
+import { getFeeEstimateXrp } from "npm:@transia/xrpl@2.7.3-alpha.28/dist/npm/sugar/index.js";
 import { Hex, Logger } from "../misc/mod.ts";
 import type { HookGrant, HookParameter, HookPayload } from "../types/hooks.ts";
 

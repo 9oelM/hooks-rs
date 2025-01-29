@@ -1,4 +1,4 @@
-import { parse } from "jsr:@std/toml";
+import { parse } from "jsr:@std/toml@1.0.2";
 
 interface MinimalCargoToml {
   package: {

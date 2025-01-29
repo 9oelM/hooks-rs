@@ -2,4 +2,4 @@
 
 This package is a CLI for managing a hooks-rs project.
 
-Deno setup is required.
+For documentation, refer to https://github.com/9oelM/hooks-rs

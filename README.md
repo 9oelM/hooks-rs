@@ -1,26 +1,90 @@
 # hooks-rs
 
-XRPL hooks in Rust.
+Xahau hooks in Rust and CLI to build and deploy hooks.
+
+## Quickstart
 
 > [!WARNING]
-> The repository is not ready yet. You will need to use it at your own discretion.
+> Only MacOS and Linux are supported for now. Windows is not supported.
 
-## Prerequisites
+Before anything, install deno.
 
-- Install Rust nightly.
-- Build and make [`hook-cleaner`](https://github.com/XRPLF/hook-cleaner-c) available in your `PATH`.
-- Install [`wasm-opt` from binaryen repo](https://github.com/WebAssembly/binaryen/releases) and make it available in your `PATH`.
+```bash
+deno install --allow-all --allow-scripts --global jsr:@hooks-rs/cli --name hooks # install the CLI as "hooks"
+
+hooks # see help
+
+hooks up # install binary dependencies
+
+hooks new hooks-example # init new project called "hooks-example"
+
+cd hooks-example
+
+hooks account # create a new account for deployment
+
+hooks build # build hook
+
+hooks deploy --hook-on INVOKE # deploy the hook
+```
+
+## Available CLI options
+
+```
+new        <projectName>  - Initializes a new hooks-rs template in a new folder in the current working
+                            directory
+up                        - Installs all prerequisite binaries
+check                     - Checks if all prerequisite binaries are installed and available in PATH
+account                   - Create a new testnet account stored in account.json
+build                     - Compile and preprocess a hook
+deploy                    - Build and deploy a hook to Xahau network
+uninstall                 - Uninstall all prerequisite binaries installed by 'up' command.
+test                      - Run tests for the project
+```
 
 ## Examples
 
-See [examples](./examples/).
+This is the most basic [accept.rs](./hooks-rs/examples/accept.rs) hook, and it looks like this:
+
+```rs
+#![no_std]
+#![no_main]
+
+use hooks_rs::*;
+
+#[no_mangle]
+pub extern "C" fn cbak(_: u32) -> i64 {
+    0
+}
+
+#[no_mangle]
+pub extern "C" fn hook(_: u32) -> i64 {
+    // Every hook needs to import guard function
+    // and use it at least once
+    max_iter(1);
+
+    // Log it to the debug stream, which can be inspected on the website or via wss connection
+    let _ = trace(b"accept.rs: Called.", b"", DataRepr::AsUTF8);
+
+    // Accept all
+    accept(b"accept.rs: Finished.", line!().into());
+}
+```
+
+[Other examples are under `/examples` directory. Check them out!](./examples/).
 
 ## Documentation
+
+Most implementations are thoroughly documented. Please check out the book and crate docs.
 
 - [The book](https://9oelm.github.io/hooks-rs/)
 - [Crate docs](https://docs.rs/hooks-rs/latest/hooks_rs/)
 
 ## Supported functions
+
+Still, a lot of functions are WIP. Contributions are welcome.
+
+<details>
+<summary>Click to expand</summary>
 
 Control
 
@@ -128,6 +192,8 @@ Originating transaction
 - [ ] `otxn_slot`
 - [x] `otxn_param`
 - [ ] `meta_slot`
+
+</details>
 
 ## C bindings
 

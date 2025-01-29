@@ -10,14 +10,19 @@
     "jsr:@std/collections@^1.0.9": "1.0.10",
     "jsr:@std/fmt@~1.0.2": "1.0.4",
     "jsr:@std/fs@*": "1.0.10",
+    "jsr:@std/fs@1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.5": "1.0.5",
     "jsr:@std/path@*": "1.0.8",
+    "jsr:@std/path@1.0.8": "1.0.8",
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/text@~1.0.7": "1.0.10",
     "jsr:@std/toml@*": "1.0.2",
+    "jsr:@std/toml@1.0.2": "1.0.2",
     "npm:@transia/xrpl@*": "2.7.3-alpha.28",
+    "npm:@transia/xrpl@2.7.3-alpha.28": "2.7.3-alpha.28",
     "npm:@transia/xrpl@^2.7.3-alpha.10": "2.7.3-alpha.28",
-    "npm:command-exists@*": "1.2.9"
+    "npm:command-exists@*": "1.2.9",
+    "npm:command-exists@1.2.9": "1.2.9"
   },
   "jsr": {
     "@cliffy/ansi@1.0.0-rc.7": {
