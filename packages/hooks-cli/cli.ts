@@ -1,5 +1,6 @@
 import { Command } from "jsr:@cliffy/command@1.0.0-rc.7";
 import * as path from "jsr:@std/path";
+import commandExists from "npm:command-exists";
 import { Logger } from "./misc/logger.ts";
 import { isMinimalCargoToml, readCargoToml } from "./misc/cargo_toml.ts";
 import { TypedObjectKeys } from "./types/utils.ts";
@@ -17,7 +18,7 @@ import { Account } from "./account/mod.ts";
 // Export for testing
 export const cli = await new Command()
   .name("hooks")
-  .version("0.0.1")
+  .version("0.0.2")
   .meta(`author`, `https://github.com/9oelm`)
   .meta(`project`, `https://github.com/9oelm/hooks-rs`)
   .description("CLI for hooks-rs")
@@ -123,6 +124,29 @@ export async function newProject(_unusedOptions: void, projectName: string) {
     `success`,
     `Successfully created new hooks-rs project in ${projectDirPath}`,
   );
+
+  // check if npm is installed
+  if ((await commandExists("npm"))) {
+    const npmInstallOutput = await new Deno.Command(`npm`, {
+      args: [`install`],
+      cwd: projectDirPath,
+    }).output();
+    if (!npmInstallOutput.success) {
+      Logger.log(
+        `error`,
+        `Could not install npm dependencies: ${
+          new TextDecoder().decode(npmInstallOutput.stderr)
+        }`,
+      );
+      Deno.exit(1);
+    }
+  } else {
+    Logger.log(
+      `error`,
+      `npm is not installed. Please install npm to continue.`,
+    );
+    Deno.exit(1);
+  }
 }
 
 export async function up() {
@@ -228,6 +252,8 @@ export async function check() {
   return allPrerequisitesInstalled && cargoNightlySelectedAsDefault &&
     wasm32UnknownUnknownTargetInstalled;
 }
+
+async function test() {}
 
 /**
  * @throws Error if invalid options are supplied
