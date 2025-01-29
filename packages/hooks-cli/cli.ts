@@ -16,15 +16,15 @@ import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
 import { Account } from "./account/mod.ts";
 import { pathExists } from "./misc/utils.ts";
-import {
-  Client,
-  encode,
-  SetHook,
-  SetHookFlags,
-  Transaction,
-  Wallet,
-} from "@transia/xrpl";
+import DefaultWallet from "npm:@transia/xrpl/dist/npm/Wallet/index.js";
+import { Client } from "npm:@transia/xrpl/dist/npm/client/index.js";
 import { HookPayload } from "./types/mod.ts";
+import { SetHook, SetHookFlags } from "@transia/xrpl";
+import {
+  getTransactionFee,
+  submitAndWaitWithRetries,
+} from "./hooks_builder/hooks_builder.ts";
+const Wallet = DefaultWallet.default;
 
 // Export for testing
 export const cli = await new Command()
@@ -462,41 +462,4 @@ async function setHook(client: Client, secret: string, hook: HookPayload) {
   );
 
   return submitResponse;
-}
-
-async function getTransactionFee(
-  client: Client,
-  transaction: Transaction,
-): Promise<string> {
-  const copyTx = JSON.parse(JSON.stringify(transaction));
-  copyTx.Fee = `0`;
-  copyTx.SigningPubKey = ``;
-
-  const preparedTx = await client.autofill(copyTx);
-
-  const tx_blob = encode(preparedTx);
-
-  const result = await getFeeEstimateXrp(client, tx_blob);
-
-  return result;
-}
-
-async function submitAndWaitWithRetries(
-  client: Client,
-  ...params: Parameters<Client["submitAndWait"]>
-) {
-  let tries = 0;
-  while (tries < 3) {
-    try {
-      const result = await client.submitAndWait(...params);
-      return result;
-    } catch (e) {
-      console.error(`${e} - retrying...`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      tries++;
-      continue;
-    }
-  }
-
-  throw new Error(`Could not submit transaction after ${tries} tries`);
 }
