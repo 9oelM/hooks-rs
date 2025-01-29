@@ -3,7 +3,7 @@ import { TypedObjectKeys } from "../types/utils.ts";
 // @deno-types="../types/command_exists.d.ts"
 import commandExists from "npm:command-exists@1.2.9";
 import * as path from "jsr:@std/path";
-import { download } from "https://deno.land/x/download@v2.0.2/mod.ts";
+import { download } from "download/mod.ts";
 import { pathExists } from "../misc/utils.ts";
 
 // "cargo 1.75.0-nightly"
