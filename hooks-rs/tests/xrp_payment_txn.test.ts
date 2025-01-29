@@ -15,10 +15,10 @@ describe("xrp_payment_txn.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    // rhoh3g6As6MdR7nrbnyiPBig8mriDJDdXN
-    alice = Wallet.fromSecret(`ssiRvVtZMhr989j2BMVqmGkYPP1cC`);
-    // rUVWhZnU2AYWYXzHpCUcSVtcuuNXkuDD1X
-    bob = Wallet.fromSecret(`snudyVMLzKNzXZ9HbzdiNFzfDKP2F`);
+    // rDvQ6RxKjFCVPXWJ63MnYJwV2zDj5vg5Vj
+    alice = Wallet.fromSecret(`shPxyMAhKBaUnhLNYgj9Xmh7sud3X`);
+    // rEjrZWyogtCxtEhf2CVizXm8DsnYqNP1Nw
+    bob = Wallet.fromSecret(`snbMxLUTVDVkRArAJMxosNhdsJhJn`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -72,6 +72,13 @@ describe("xrp_payment_txn.rs", () => {
       if (typeof txResponse.result.meta === "string") {
         throw new Error("Meta is string, not object");
       }
+
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
+      }
+
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
         HookExecution,
       ];

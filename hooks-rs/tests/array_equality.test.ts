@@ -64,6 +64,12 @@ describe("array_equality.rs", () => {
         throw new Error(`Hook execution happened more than once`);
       }
 
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
+      }
+
       // safe type: we checked everything
       const [hookExecution] = meta.HookExecutions as [HookExecution];
 

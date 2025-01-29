@@ -3,6 +3,7 @@ import {
   Client,
   encode,
   SetHook,
+  SetHookFlags,
   Transaction,
   TxResponse,
   Wallet,
@@ -226,10 +227,34 @@ export class TestUtils {
 
   static async setHook(client: Client, secret: string, hook: iHook) {
     const wallet = Wallet.fromSecret(secret);
+
+    const deleteTx: SetHook = {
+      TransactionType: `SetHook`,
+      Account: wallet.address,
+      Hooks: [{
+        Hook: {
+          CreateCode: ``,
+          Flags: SetHookFlags.hsfOverride | SetHookFlags.hsfNSDelete,
+        },
+      }],
+    };
+
+    const f = await TestUtils.getTransactionFee(client, deleteTx);
+    deleteTx.Fee = f;
+    try {
+      await TestUtils.submitAndWaitWithRetries(client, deleteTx, {
+        wallet,
+        failHard: true,
+        autofill: true,
+      });
+      console.log(`Existing hook deleted for testing`);
+    } catch {}
+
     const tx: SetHook = {
       TransactionType: `SetHook`,
       Account: wallet.address,
       Hooks: [{ Hook: hook }],
+      Flags: SetHookFlags.hsfOverride | SetHookFlags.hsfNSDelete,
     };
 
     const fee = await TestUtils.getTransactionFee(client, tx);

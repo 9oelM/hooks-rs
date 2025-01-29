@@ -75,6 +75,12 @@ describe("state_basic.rs", () => {
         throw new Error(`Hook execution happened more than once`);
       }
 
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
+      }
+
       for (const address of [alice.classicAddress, bob.classicAddress]) {
         // Hook always returns uppercase hex string
         const addressAsStateKey = padHexString(

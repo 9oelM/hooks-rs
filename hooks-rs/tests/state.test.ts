@@ -16,10 +16,10 @@ describe("state.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    // rHZBYi9RLCsM6oW9L6A8vMWSBfoiagRH6m
-    alice = Wallet.fromSecret(`ssDhYg2KDrCh7FHWvkuVr2PXd5kfw`);
-    // rhoh3g6As6MdR7nrbnyiPBig8mriDJDdXN
-    bob = Wallet.fromSecret(`ssiRvVtZMhr989j2BMVqmGkYPP1cC`);
+    // ra1ETDhsmHLUucKAAshR5iWkPhj2JkSXWf
+    alice = Wallet.fromSecret(`ssxrDUgoE89Zo57sSjDwHp5Tg5UFa`);
+    // r4i6zUa46fh4WhgkmDA9raTHMy5raCtswW
+    bob = Wallet.fromSecret(`shsWx8eafgdNacB3MbBgehczURBqH`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -63,6 +63,12 @@ describe("state.rs", () => {
 
       if (meta.HookExecutions.length > 1) {
         throw new Error(`Hook execution happened more than once`);
+      }
+
+      if (meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
       }
 
       // Hook always returns uppercase hex string

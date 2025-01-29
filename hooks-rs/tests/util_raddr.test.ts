@@ -55,6 +55,13 @@ describe("util_raddr.rs", () => {
       if (typeof txResponse.result.meta === "string") {
         throw new Error("Meta is string, not object");
       }
+
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
+      }
+
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
         HookExecution,
       ];
@@ -65,8 +72,7 @@ describe("util_raddr.rs", () => {
         TestUtils.deserializeHexStringAsBigInt(HookReturnCode.toString()),
       ).toBe(0n);
       expect(HookReturnString).toMatch(
-        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`
-          .toUpperCase(),
+        `724c71554659474c4d4253396a46363369526b616476753363546978616452546433`.toUpperCase(),
       );
     },
     3 * 60_000,

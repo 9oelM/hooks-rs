@@ -62,6 +62,13 @@ describe.skip("util_accid.rs", () => {
       if (typeof txResponse.result.meta === "string") {
         throw new Error("Meta is string, not object");
       }
+
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
+      }
+
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
         HookExecution,
       ];
