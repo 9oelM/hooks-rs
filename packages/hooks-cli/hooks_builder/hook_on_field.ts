@@ -72,7 +72,7 @@ export class HookOnField {
       throw new Error("HookOnField not initialized");
     }
 
-    return `0x${this.hookOn.toString(16)}`;
+    return `${this.hookOn.toString(16)}`;
   }
 
   public toList(): (keyof typeof XrplTransactionType)[] {

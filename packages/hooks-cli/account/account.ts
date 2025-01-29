@@ -57,6 +57,31 @@ export async function create() {
   );
 }
 
+export async function load() {
+  const currentDir = Deno.cwd();
+  const accountJsonPath = `${currentDir}/account.json`;
+
+  if (await Deno.stat(accountJsonPath).catch(() => null)) {
+    const accountJson = await Deno.readTextFile(accountJsonPath);
+    const accountInfo = JSON.parse(accountJson);
+
+    if (!isLocalAccountJson(accountInfo)) {
+      Logger.log(
+        `error`,
+        `account.json is not in the correct format. Please check the JSON structure of account.json.`,
+      );
+      return;
+    }
+
+    return accountInfo;
+  } else {
+    Logger.log(
+      `error`,
+      `account.json does not exist. Please run "account create" to create a new account.`,
+    );
+  }
+}
+
 async function fetchFundedTestnetAccount(): Promise<
   { secret: XRPLSecret; address: string } | undefined
 > {
@@ -88,7 +113,11 @@ async function fetchFundedTestnetAccount(): Promise<
     } else {
       Logger.log(
         `error`,
-        `Could not create prefunded testnet account due to unexpected json object: "${responseJson}"`,
+        `Could not create prefunded testnet account due to unexpected json object: "${
+          typeof responseJson === "object"
+            ? JSON.stringify(responseJson, null, 2)
+            : responseJson
+        }"`,
       );
     }
   } catch (_e) {
@@ -106,4 +135,14 @@ function isPrefundedTestnetAccount(
   return typeof account === `object` &&
     account !== null &&
     `account` in account;
+}
+
+function isLocalAccountJson(
+  account: unknown,
+): account is { secret: XRPLSecret; address: string } {
+  return typeof account === `object` &&
+    account !== null &&
+    `secret` in account &&
+    `address` in account && typeof account.secret === `string` &&
+    typeof account.address === `string`;
 }

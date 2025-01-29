@@ -1,4 +1,4 @@
-import { Command } from "jsr:@cliffy/command@1.0.0-rc.7";
+import { Command, type CommandResult } from "jsr:@cliffy/command@1.0.0-rc.7";
 import * as path from "jsr:@std/path";
 import commandExists from "npm:command-exists";
 import { Logger } from "./misc/logger.ts";
@@ -7,17 +7,33 @@ import { TypedObjectKeys } from "./types/utils.ts";
 import { copy } from "jsr:@std/fs";
 import { DependenciesManager } from "./dependencies_manager/mod.ts";
 import {
+  HookOnField,
   HooksBuilder,
   isXrplTransactionType,
-  XrplTransactionType,
+  type XrplTransactionType,
 } from "./hooks_builder/mod.ts";
 import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
 import { Account } from "./account/mod.ts";
 import { pathExists } from "./misc/utils.ts";
+import DefaultWallet from "npm:@transia/xrpl/dist/npm/Wallet/index.js";
+import { Client } from "npm:@transia/xrpl/dist/npm/client/index.js";
+import type { SetHook } from "npm:@transia/xrpl";
+import type { HookPayload } from "./types/mod.ts";
+import { getTransactionFee } from "./hooks_builder/hooks_builder.ts";
+const Wallet = DefaultWallet.default;
 
 // Export for testing
-export const cli = await new Command()
+export const cli: CommandResult<
+  Record<string, unknown>,
+  unknown[],
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  Record<string, unknown>,
+  undefined
+> = await new Command()
   .name("hooks")
   .version("0.0.2")
   .meta(`author`, `https://github.com/9oelm`)
@@ -58,23 +74,29 @@ export const cli = await new Command()
   })
   .command(
     `deploy`,
-    `Deploy a built hook to Xahau network`,
+    `Build and deploy a hook to Xahau network`,
   )
-  .option("--rpc <rpc:string>", "RPC endpoint for deployment", {
-    default: getRpcUrl(Network.Network.XahauTestnet),
+  .option("--rpc <rpc:string>", "Websocket RPC endpoint for deployment", {
+    default: getRpcUrl(Network.Network.XahauTestnet, true),
   })
   .option(
     "--hook-on [transactionTypes...:string]",
-    "A list of HookOn fields in UPPERCASE",
+    "A list of HookOn fields in UPPERCASE (example: --hook-on PAYMENT TICKET_CREATE INVOKE)",
     {
       required: true,
     },
   )
-  .action(({
+  .action(async ({
     rpc,
     hookOn,
   }) => {
-    validateDeployOptions({
+    if (typeof hookOn === `boolean`) {
+      throw new Error(
+        `HookOn field must be a list of transaction tyes. For example: --hook-on PAYMENT TICKET_CREATE INVOKE`,
+      );
+    }
+
+    await deploy({
       rpc,
       hookOn,
     });
@@ -131,6 +153,8 @@ export async function newProject(_unusedOptions: void, projectName: string) {
     `Successfully created new hooks-rs project in ${projectDirPath}`,
   );
 
+  Logger.log(`info`, `Installing npm dependencies...`);
+
   // check if npm is installed
   if ((await commandExists("npm"))) {
     const npmInstallOutput = await new Deno.Command(`npm`, {
@@ -146,6 +170,14 @@ export async function newProject(_unusedOptions: void, projectName: string) {
       );
       Deno.exit(1);
     }
+
+    Logger.log(`success`, `Successfully installed npm dependencies`);
+    Logger.log(
+      `info`,
+      npmInstallOutput.stdout
+        ? new TextDecoder().decode(npmInstallOutput.stdout)
+        : "",
+    );
   } else {
     Logger.log(
       `error`,
@@ -194,7 +226,7 @@ export async function up() {
   await check();
 }
 
-export async function build() {
+export async function build(): Promise<HookPayload | undefined> {
   const parsedCargoToml = await readCargoToml();
   if (isMinimalCargoToml(parsedCargoToml)) {
     const { name } = parsedCargoToml.package;
@@ -211,7 +243,7 @@ export async function build() {
   }
 }
 
-export async function check() {
+export async function check(): Promise<boolean> {
   const prerequisitesInstallationStatus = await DependenciesManager
     .checkPrerequisitesInstalled();
 
@@ -313,7 +345,10 @@ export function validateDeployOptions({
   rpc: string;
   // Follows the auto inferred type from cliffy
   hookOn: true | string[];
-}) {
+}): {
+  hookOn: Set<keyof typeof XrplTransactionType>;
+  rpc: URL;
+} {
   if (!Array.isArray(hookOn) || hookOn.length === 0) {
     throw new Error(
       `HookOn field must be a list of transaction tyes. For example:
@@ -361,4 +396,97 @@ export async function uninstall() {
   }
 
   await Promise.all(uninstallations);
+}
+
+export async function deploy({
+  rpc,
+  hookOn,
+}: {
+  rpc: string;
+  hookOn: string[];
+}) {
+  const {
+    hookOn: hookOnTTSet,
+  } = validateDeployOptions({
+    rpc,
+    hookOn,
+  });
+
+  const hookOnFieldHex = new HookOnField().fromSet(new Set(hookOnTTSet))
+    .toHex();
+
+  const client = new Client(rpc, {});
+  await client.connect();
+  client.networkID = await client.getNetworkID();
+
+  const account = await Account.load();
+  if (!account) {
+    Logger.log(
+      `error`,
+      `Could not load account from account.json`,
+    );
+    Deno.exit(1);
+  }
+
+  const hookPayload = await build();
+
+  if (!hookPayload) {
+    Logger.log(
+      `error`,
+      `Could not build hook.`,
+    );
+    Deno.exit(1);
+  }
+
+  hookPayload.HookOn = hookOnFieldHex.toUpperCase();
+
+  Logger.log(`info`, `Hook payload: ${JSON.stringify(hookPayload, null, 2)}`);
+
+  const submitResponse = await setHook(
+    client,
+    account.secret,
+    hookPayload,
+  );
+
+  await client.disconnect();
+
+  if (
+    typeof submitResponse.result.meta === `object` &&
+    submitResponse.result.meta !== null &&
+    `TransactionResult` in submitResponse.result.meta &&
+    submitResponse.result.meta.TransactionResult === "tesSUCCESS"
+  ) {
+    Logger.log(
+      `success`,
+      `Successfully deployed hook`,
+    );
+  } else {
+    Logger.log(
+      `error`,
+      `Could not deploy hook: ${JSON.stringify(submitResponse, null, 2)}`,
+    );
+    Deno.exit(1);
+  }
+}
+
+async function setHook(client: Client, secret: string, hook: HookPayload) {
+  const wallet = Wallet.fromSecret(secret);
+
+  const tx: SetHook = {
+    TransactionType: `SetHook`,
+    Account: wallet.address,
+    Hooks: [{ Hook: hook }],
+  };
+
+  const { Fee: _, ...rest } = await client.autofill(tx);
+  const fee = await getTransactionFee(client, rest);
+  tx.Fee = fee;
+
+  const result = await client.submitAndWait(tx, {
+    wallet,
+    failHard: true,
+    autofill: true,
+  });
+
+  return result;
 }

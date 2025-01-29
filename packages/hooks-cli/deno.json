@@ -1,10 +1,12 @@
 {
-  "tasks": {
-    "dev": "deno run --watch main.ts"
-  },
+  "name": "@hooks-rs/cli",
+  "version": "0.1.0",
+  "license": "MIT",
+  "tasks": {},
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
-    "@transia/xrpl": "npm:@transia/xrpl@^2.7.3-alpha.28"
+    "@transia/xrpl": "npm:@transia/xrpl@^2.7.3-alpha.10"
   },
+  "exports": "./cli.ts",
   "nodeModulesDir": "auto"
 }

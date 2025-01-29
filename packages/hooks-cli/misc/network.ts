@@ -3,15 +3,23 @@ export enum Network {
   XahauMainnet = "XAHAU_MAINNET",
 }
 
-const TESTNET_RPC_URL = "https://xahau-test.net";
-const MAINNET_RPC_URL = "https://xahau.network";
+const TESTNET_WS_RPC_URL = "ws://xahau-test.net";
+const TESTNET_HTTP_RPC_URL = "https://xahau-test.net";
+const MAINNET_WS_RPC_URL = "wss://xahau.network";
+const MAINNET_HTTP_RPC_URL = "https://xahau.network";
 
-export function getRpcUrl(network: Network) {
+export function getRpcUrl(network: Network, ws?: boolean): string {
   switch (network) {
     case Network.XahauTestnet:
-      return TESTNET_RPC_URL;
+      if (ws) {
+        return TESTNET_WS_RPC_URL;
+      }
+      return TESTNET_HTTP_RPC_URL;
     case Network.XahauMainnet:
-      return MAINNET_RPC_URL;
+      if (ws) {
+        return MAINNET_WS_RPC_URL;
+      }
+      return MAINNET_HTTP_RPC_URL;
     default:
       throw new Error("Invalid network");
   }
