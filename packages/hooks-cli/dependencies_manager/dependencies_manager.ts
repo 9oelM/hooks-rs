@@ -145,18 +145,39 @@ async function installWasmOpt() {
     path.join(tmpDir, BINARYEN_VERSION_DIR, `bin`, `wasm-opt`),
     0o755,
   );
-  // the whole directory needs to be moved due to include files
-  if (!(await pathExists(`/usr/local/${BINARYEN_VERSION_DIR}`))) {
+
+  if (await pathExists(`/usr/local/${BINARYEN_VERSION_DIR}`)) {
+    Logger.log(
+      `info`,
+      `Removing existing ${BINARYEN_VERSION_DIR}. Will replace with new version.`,
+    );
+    await Deno.remove(`/usr/local/${BINARYEN_VERSION_DIR}`, {
+      recursive: true,
+    });
+  }
+
+  if (!(await pathExists(`/usr/local/${BINARYEN_VERSION_DIR}/`))) {
     await Deno.rename(
       path.join(tmpDir, BINARYEN_VERSION_DIR),
       `/usr/local/${BINARYEN_VERSION_DIR}`,
     );
   }
-  if (!(await pathExists(`/usr/local/bin/wasm-opt`))) {
+
+  try {
     await Deno.symlink(
       path.join(`/usr/local/${BINARYEN_VERSION_DIR}`, `bin`, `wasm-opt`),
       `/usr/local/bin/wasm-opt`,
     );
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === Deno.errors.AlreadyExists.name) {
+        // ignore
+      } else {
+        throw error;
+      }
+    } else {
+      throw error; // Re-throw for other errors
+    }
   }
   await Deno.remove(tmpDir, { recursive: true });
 }
@@ -347,7 +368,7 @@ export async function uninstallPrerequisite(
       // depending on the machine, so we just leave it for now
       Logger.log(
         `warn`,
-        `Note: wasm-pack installation detected. If you want, you need to uninstall wasm-pack yourself.`,
+        `Note: wasm-pack installation detected. If you want, you need to uninstall wasm-pack yourself. Hint: type 'which wasm-pack' to find the installation location.`,
       );
       break;
     default:

@@ -16,6 +16,8 @@ export async function pathExists(path: string): Promise<boolean> {
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       return false; // Path does not exist
+    } else if (error instanceof Deno.errors.AlreadyExists) {
+      return true;
     }
     throw error; // Re-throw for other errors
   }
