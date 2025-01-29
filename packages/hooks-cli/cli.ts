@@ -39,17 +39,10 @@ export const cli = await new Command()
   .action(check)
   .command(
     "account",
+    "Create a new testnet account stored in account.json",
   )
-  .option("--new <new:boolean>", "Create a new account stored in JSON file", {
-    default: true,
-    conflicts: ["--from-secret"],
-  })
-  .action(async ({
-    new: newAccount,
-  }) => {
-    if (newAccount) {
-      await Account.create();
-    }
+  .action(async () => {
+    await Account.create();
   })
   .command(
     "build",
@@ -58,7 +51,7 @@ export const cli = await new Command()
   .action(async () => {
     const checksPassed = await check();
     if (checksPassed) {
-      build();
+      await build();
     }
   })
   .command(
@@ -236,9 +229,6 @@ export async function check() {
     wasm32UnknownUnknownTargetInstalled;
 }
 
-export function account() {
-}
-
 /**
  * @throws Error if invalid options are supplied
  */
@@ -279,9 +269,6 @@ export function validateDeployOptions({
     hookOn: hookOnSet,
     rpc: rpcUrl,
   };
-}
-
-export async function deploy() {
 }
 
 export async function uninstall() {

@@ -96,7 +96,7 @@ export class TestUtils {
   }
 
   static async buildHook(hookName: string): Promise<iHook> {
-    await exec("cargo +nightly build --examples --release");
+    await exec("cargo +nightly build --release");
     const hook = createHookPayload(
       0,
       // Add hook code after this
@@ -111,7 +111,6 @@ export class TestUtils {
       `target`,
       `wasm32-unknown-unknown`,
       `release`,
-      `examples`,
     );
     const debugDir = path.resolve(__dirname, `..`, `target`);
     const wasmInFile = path.resolve(wasmDir, `${hookName}.wasm`);
@@ -150,22 +149,13 @@ export class TestUtils {
     };
     try {
       await Promise.all([
+        writeFile(path.resolve(debugDir, `${hookName}.wat`), wats.wasmIn),
         writeFile(
-          path.resolve(debugDir, `${hookName}.wat`),
-          wats.wasmIn,
-        ),
-        writeFile(
-          path.resolve(
-            debugDir,
-            `${hookName}-cleaned.wat`,
-          ),
+          path.resolve(debugDir, `${hookName}-cleaned.wat`),
           wats.wasmOutCleaned,
         ),
         writeFile(
-          path.resolve(
-            debugDir,
-            `${hookName}-flattened.wat`,
-          ),
+          path.resolve(debugDir, `${hookName}-flattened.wat`),
           wats.wasmOutFlattened,
         ),
       ]);
@@ -231,12 +221,14 @@ export class TestUtils {
     const deleteTx: SetHook = {
       TransactionType: `SetHook`,
       Account: wallet.address,
-      Hooks: [{
-        Hook: {
-          CreateCode: ``,
-          Flags: SetHookFlags.hsfOverride | SetHookFlags.hsfNSDelete,
+      Hooks: [
+        {
+          Hook: {
+            CreateCode: ``,
+            Flags: SetHookFlags.hsfOverride | SetHookFlags.hsfNSDelete,
+          },
         },
-      }],
+      ],
     };
 
     const f = await TestUtils.getTransactionFee(client, deleteTx);

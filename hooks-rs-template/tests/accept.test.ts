@@ -3,7 +3,7 @@ import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
 import { ExecutionUtility } from "@transia/hooks-toolkit";
 import { TestUtils } from "./setup";
 
-const HOOK_NAME = "accept";
+const HOOK_NAME = "hooks-rs-template";
 
 describe("accept.rs", () => {
   let client: Client;
@@ -25,9 +25,9 @@ describe("accept.rs", () => {
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
-  afterAll(async () => {
-    await client.disconnect();
-  }, 10_000);
+  // afterAll(async () => {
+  //   await client.disconnect();
+  // }, 10_000);
 
   it(
     "accepts an incoming txn",
