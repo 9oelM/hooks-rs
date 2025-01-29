@@ -131,6 +131,8 @@ export async function newProject(_unusedOptions: void, projectName: string) {
     `Successfully created new hooks-rs project in ${projectDirPath}`,
   );
 
+  Logger.log(`info`, `Installing npm dependencies...`);
+
   // check if npm is installed
   if ((await commandExists("npm"))) {
     const npmInstallOutput = await new Deno.Command(`npm`, {
@@ -146,6 +148,14 @@ export async function newProject(_unusedOptions: void, projectName: string) {
       );
       Deno.exit(1);
     }
+
+    Logger.log(`success`, `Successfully installed npm dependencies`);
+    Logger.log(
+      `info`,
+      npmInstallOutput.stdout
+        ? new TextDecoder().decode(npmInstallOutput.stdout)
+        : "",
+    );
   } else {
     Logger.log(
       `error`,
