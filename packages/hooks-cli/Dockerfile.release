@@ -1,0 +1,66 @@
+FROM denoland/deno:2.1.7
+
+ENV DEBIAN_FRONTEND=noninteractive 
+ENV TZ="America/New_York"
+
+EXPOSE 1993
+
+WORKDIR /app
+
+RUN apt-get update
+
+RUN apt-get install -y \
+    build-essential \
+    curl \
+    bash \
+    software-properties-common
+RUN apt-get update
+# git
+RUN apt-get install -y git
+
+# rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup default nightly
+RUN rustup target add wasm32-unknown-unknown
+
+# clang
+RUN apt-get install -y llvm-dev libclang-dev clang
+
+RUN apt-get update
+
+RUN echo 'deb http://deb.debian.org/debian testing main' > /etc/apt/sources.list.d/testing.list
+
+# Step 4: Configure APT pinning for stable and testing repositories
+RUN echo 'Package: *\nPin: release a=stable\nPin-Priority: 700' > /etc/apt/preferences.d/pin && \
+    echo 'Package: *\nPin: release a=testing\nPin-Priority: 650' >> /etc/apt/preferences.d/pin
+
+# Step 5: Update apt package lists and install build-essential from the testing repo
+RUN apt update && \
+    apt install -qq -y -t testing build-essential
+
+# Step 6: Clean up APT cache to reduce image size
+RUN apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Step 7: Clean up APT cache to reduce image size
+RUN apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV NODE_VERSION=22.10.0
+RUN apt install -y curl
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+ENV NVM_DIR=/root/.nvm
+RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
+ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
+RUN node --version
+RUN npm --version
+
+RUN deno install --allow-all --allow-scripts --global jsr:@hooks-rs/cli --name hooks 
+
+RUN hooks up
+
+CMD ["hooks"]

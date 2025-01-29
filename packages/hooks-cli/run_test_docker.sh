@@ -1,3 +1,4 @@
+# For local and CI testing
 #!/bin/sh
 
 docker run \
