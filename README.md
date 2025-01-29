@@ -2,6 +2,10 @@
 
 Xahau hooks in Rust and CLI to build and deploy hooks.
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/opCW1XWBACFcuO7NNoSYaKKqC.svg)](https://asciinema.org/a/opCW1XWBACFcuO7NNoSYaKKqC)
+
 ## Quickstart
 
 > [!WARNING]
