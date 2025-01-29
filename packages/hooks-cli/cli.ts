@@ -1,5 +1,6 @@
 import { Command } from "jsr:@cliffy/command@1.0.0-rc.7";
 import * as path from "jsr:@std/path";
+import commandExists from "npm:command-exists";
 import { Logger } from "./misc/logger.ts";
 import { isMinimalCargoToml, readCargoToml } from "./misc/cargo_toml.ts";
 import { TypedObjectKeys } from "./types/utils.ts";
@@ -13,11 +14,12 @@ import {
 import { getRpcUrl } from "./misc/network.ts";
 import { Network } from "./misc/mod.ts";
 import { Account } from "./account/mod.ts";
+import { pathExists } from "./misc/utils.ts";
 
 // Export for testing
 export const cli = await new Command()
   .name("hooks")
-  .version("0.0.1")
+  .version("0.0.2")
   .meta(`author`, `https://github.com/9oelm`)
   .meta(`project`, `https://github.com/9oelm/hooks-rs`)
   .description("CLI for hooks-rs")
@@ -39,17 +41,10 @@ export const cli = await new Command()
   .action(check)
   .command(
     "account",
+    "Create a new testnet account stored in account.json",
   )
-  .option("--new <new:boolean>", "Create a new account stored in JSON file", {
-    default: true,
-    conflicts: ["--from-secret"],
-  })
-  .action(async ({
-    new: newAccount,
-  }) => {
-    if (newAccount) {
-      await Account.create();
-    }
+  .action(async () => {
+    await Account.create();
   })
   .command(
     "build",
@@ -58,7 +53,7 @@ export const cli = await new Command()
   .action(async () => {
     const checksPassed = await check();
     if (checksPassed) {
-      build();
+      await build();
     }
   })
   .command(
@@ -90,6 +85,11 @@ export const cli = await new Command()
 WARNING: if you have other projects using the prerequisite binaries or if you have installed the binaries yourself in the past, those binaries will be removed and may cause you problems)`,
   )
   .action(uninstall)
+  .command(
+    `test`,
+    `Run tests for the project`,
+  )
+  .action(test)
   .parse(Deno.args);
 
 // Print help on no arguments or subcommand.
@@ -130,6 +130,29 @@ export async function newProject(_unusedOptions: void, projectName: string) {
     `success`,
     `Successfully created new hooks-rs project in ${projectDirPath}`,
   );
+
+  // check if npm is installed
+  if ((await commandExists("npm"))) {
+    const npmInstallOutput = await new Deno.Command(`npm`, {
+      args: [`install`],
+      cwd: projectDirPath,
+    }).output();
+    if (!npmInstallOutput.success) {
+      Logger.log(
+        `error`,
+        `Could not install npm dependencies: ${
+          new TextDecoder().decode(npmInstallOutput.stderr)
+        }`,
+      );
+      Deno.exit(1);
+    }
+  } else {
+    Logger.log(
+      `error`,
+      `npm is not installed. Please install npm to continue.`,
+    );
+    Deno.exit(1);
+  }
 }
 
 export async function up() {
@@ -236,7 +259,48 @@ export async function check() {
     wasm32UnknownUnknownTargetInstalled;
 }
 
-export function account() {
+async function test() {
+  // exists ./package.json?
+  if (!(await pathExists("./package.json"))) {
+    Logger.log(
+      `error`,
+      `package.json not found. Are you in the root of a hooks project?`,
+    );
+    Deno.exit(1);
+  }
+
+  // run npm test
+  const process = new Deno.Command("npm", {
+    args: ["test"],
+    stdout: "piped",
+    stderr: "piped",
+  }).spawn();
+
+  // Function to stream output
+  async function streamOutput(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    prefix: string,
+  ) {
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      console.log(`${prefix}${decoder.decode(value)}`);
+    }
+  }
+
+  // Stream stdout and stderr in real time
+  await Promise.all([
+    streamOutput(process.stdout.getReader(), ""), // Standard output
+    streamOutput(process.stderr.getReader(), "Error: "), // Standard error
+  ]);
+
+  // Wait for the process to complete
+  const status = await process.status;
+  if (!status.success) {
+    console.error("npm test failed.");
+    Deno.exit(1);
+  }
 }
 
 /**
@@ -279,9 +343,6 @@ export function validateDeployOptions({
     hookOn: hookOnSet,
     rpc: rpcUrl,
   };
-}
-
-export async function deploy() {
 }
 
 export async function uninstall() {

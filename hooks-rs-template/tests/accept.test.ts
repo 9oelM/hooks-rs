@@ -1,9 +1,9 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
 import { ExecutionUtility } from "@transia/hooks-toolkit";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 
-const HOOK_NAME = "accept";
+const HOOK_NAME = "hooks-rs-template";
 
 describe("accept.rs", () => {
   let client: Client;
@@ -15,12 +15,13 @@ describe("accept.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [{ secret: secret0 }, { secret: secret1 }] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // Replace the secrets with your own
+    // by running curl https://xahau-test.net/accounts -XPOST
+    //
+    // rPytuHMiYpEA49BCiz8378BRjZx6QVBYav
+    alice = Wallet.fromSecret(`shNLn8wgcz3fT9t4E4jpLGZ8p3yYh`);
+    // rMvs84BS9X48o2C6dFTtVYrPachPjok1CC
+    bob = Wallet.fromSecret(`spjC7qpRgz2bxmZeC9YXBjMvYaVkM`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 

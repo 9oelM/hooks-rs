@@ -1,6 +1,6 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 
 const HOOK_NAME = "xrp_payment_txn";
@@ -14,23 +14,11 @@ describe("xrp_payment_txn.rs", () => {
     const hook = await TestUtils.buildHook(HOOK_NAME);
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
-    console.log(1);
     client.networkID = await client.getNetworkID();
-    console.log(2);
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    console.log(3, secret0, secret1);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // rDvQ6RxKjFCVPXWJ63MnYJwV2zDj5vg5Vj
+    alice = Wallet.fromSecret(`shPxyMAhKBaUnhLNYgj9Xmh7sud3X`);
+    // rEjrZWyogtCxtEhf2CVizXm8DsnYqNP1Nw
+    bob = Wallet.fromSecret(`snbMxLUTVDVkRArAJMxosNhdsJhJn`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -39,7 +27,7 @@ describe("xrp_payment_txn.rs", () => {
   }, 10_000);
 
   it(
-    `alice pays 1000 XRP to bob`,
+    `alice pays 1000 drops of XRP to bob`,
     async () => {
       const {
         result: {
@@ -84,6 +72,13 @@ describe("xrp_payment_txn.rs", () => {
       if (typeof txResponse.result.meta === "string") {
         throw new Error("Meta is string, not object");
       }
+
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
+      }
+
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
         HookExecution,
       ];

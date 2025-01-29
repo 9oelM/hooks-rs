@@ -6,7 +6,7 @@ import {
   Transaction,
   Wallet,
 } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 
 const HOOK_NAME = "util_accid";
@@ -23,19 +23,10 @@ describe.skip("util_accid.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // rUVWhZnU2AYWYXzHpCUcSVtcuuNXkuDD1X
+    alice = Wallet.fromSecret(`snudyVMLzKNzXZ9HbzdiNFzfDKP2F`);
+    // r4tryuYjz7ZxtJFb2ELWGTNnEFsT1ZxaJp
+    bob = Wallet.fromSecret(`snmxzsV6WCiZ1RCg566sKfMkzPcwB`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -71,6 +62,13 @@ describe.skip("util_accid.rs", () => {
       if (typeof txResponse.result.meta === "string") {
         throw new Error("Meta is string, not object");
       }
+
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
+      }
+
       const [hookExecution] = txResponse.result.meta.HookExecutions as [
         HookExecution,
       ];

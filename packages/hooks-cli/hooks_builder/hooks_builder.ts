@@ -89,7 +89,6 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
     `wasm32-unknown-unknown`,
     `release`,
   );
-  const debugDir = path.join(Deno.cwd(), "target");
   const wasmInFile = path.join(wasmDir, `${hookName}.wasm`);
   const wasmOutFlattened = path.join(
     wasmDir,
@@ -128,56 +127,6 @@ export async function buildHook(hookName: string): Promise<HookPayload> {
     },
   ).spawn();
   await Logger.handleOutput(hookCleanerOut);
-  const outputs = [
-    new Deno.Command(
-      `wasm2wat`,
-      {
-        args: [
-          wasmInFile,
-          `-o`,
-          path.join(
-            debugDir,
-            `${hookName}.wat`,
-          ),
-        ],
-        stderr: `piped`,
-        stdout: `piped`,
-      },
-    ).spawn(),
-    new Deno.Command(
-      `wasm2wat`,
-      {
-        args: [
-          wasmOutCleaned,
-          `-o`,
-          path.join(
-            debugDir,
-            `${hookName}-cleaned.wat`,
-          ),
-        ],
-        stderr: `piped`,
-        stdout: `piped`,
-      },
-    ).spawn(),
-    new Deno.Command(
-      `wasm2wat`,
-      {
-        args: [
-          wasmOutFlattened,
-          `-o`,
-          path.join(
-            debugDir,
-            `${hookName}-flattened.wat`,
-          ),
-        ],
-        stderr: `piped`,
-        stdout: `piped`,
-      },
-    ).spawn(),
-  ];
-  await Promise.all(outputs.map((proc) => {
-    return Logger.handleOutput(proc);
-  }));
   const guardCheckerOut = new Deno.Command(`guard_checker`, {
     args: [
       wasmOutCleaned,

@@ -1,6 +1,6 @@
 // xrpl
 import { Client, Invoke, Transaction, Wallet } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 import { padHexString, StateUtility } from "@transia/hooks-toolkit";
 
@@ -16,19 +16,10 @@ describe("state.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // ra1ETDhsmHLUucKAAshR5iWkPhj2JkSXWf
+    alice = Wallet.fromSecret(`ssxrDUgoE89Zo57sSjDwHp5Tg5UFa`);
+    // r4i6zUa46fh4WhgkmDA9raTHMy5raCtswW
+    bob = Wallet.fromSecret(`shsWx8eafgdNacB3MbBgehczURBqH`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -72,6 +63,12 @@ describe("state.rs", () => {
 
       if (meta.HookExecutions.length > 1) {
         throw new Error(`Hook execution happened more than once`);
+      }
+
+      if (meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
       }
 
       // Hook always returns uppercase hex string

@@ -6,7 +6,7 @@ import {
   Transaction,
   Wallet,
 } from "@transia/xrpl";
-import { Faucet, TestUtils } from "./setup";
+import { TestUtils } from "./setup";
 import { HookExecution } from "@transia/xrpl/dist/npm/models/transactions/metadata";
 
 const HOOK_NAME = "hook_account";
@@ -21,19 +21,13 @@ describe("hook_account.rs", () => {
     client = new Client("wss://xahau-test.net", {});
     await client.connect();
     client.networkID = await client.getNetworkID();
-    let [
-      {
-        account: { secret: secret0 },
-      },
-      {
-        account: { secret: secret1 },
-      },
-    ] = await Promise.all([
-      Faucet.waitAndGetNewAccount(),
-      Faucet.waitAndGetNewAccount(),
-    ]);
-    alice = Wallet.fromSecret(secret0);
-    bob = Wallet.fromSecret(secret1);
+    // Because Faucet only allows one account to be created every 60 seconds,
+    // we will use the following accounts for testing. Change the secrets when
+    // running out of funds.
+    // rUXE2vDtggMF4e9s9HneDyeqZacUwtWV2M
+    alice = Wallet.fromSecret(`snnKdEThbMhPthyidR7roRnR2fb8b`);
+    // rEnmXfkF2Y9jDwNG6t12tcSf3tf9nsy446
+    bob = Wallet.fromSecret(`snxbZienDLSnCgT8YxhR61AfSmLJd`);
     await TestUtils.setHook(client, alice.seed!, hook);
   }, 3 * 60_000);
 
@@ -77,6 +71,12 @@ describe("hook_account.rs", () => {
 
       if (meta.HookExecutions.length > 1) {
         throw new Error(`Hook execution happened more than once`);
+      }
+
+      if (txResponse.result.meta.TransactionResult !== "tesSUCCESS") {
+        console.error(JSON.stringify(txResponse, null, 2));
+
+        throw new Error(`Transaction failed`);
       }
 
       // safe type: we checked everything
