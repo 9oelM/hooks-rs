@@ -156,6 +156,4 @@ Deno.test(`[deploy] command should deploy a hook`, async () => {
     rpc: getRpcUrl(Network.XahauTestnet, true),
     hookOn: [`INVOKE`],
   });
-
-  Deno.exit(0);
 });
