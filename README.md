@@ -9,7 +9,7 @@ Xahau hooks in Rust and CLI to build and deploy hooks.
 ## Quickstart
 
 > [!WARNING]
-> Only MacOS and Linux are supported for now. Windows is not supported.
+> Only MacOS and Linux are supported for now. If you are on Windows, please use Docker (see below).
 
 Before anything, install deno.
 
