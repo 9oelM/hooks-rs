@@ -13,6 +13,12 @@ pub fn ledger_seq() -> i64 {
     unsafe { c::ledger_seq() }
 }
 
+/// Fetch the current ledger sequence number
+#[inline(always)]
+pub fn ledger_last_time() -> i64 {
+    unsafe { c::ledger_last_time() }
+}
+
 /// Retreive the 32 byte namespace biased SHA512H of the last closed ledger
 #[inline(always)]
 pub fn ledger_last_hash(hash: &mut [u8]) -> Result<u64> {
