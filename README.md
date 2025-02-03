@@ -167,7 +167,7 @@ Ledger
 - [x] `fee_base`
 - [x] `ledger_seq`
 - [ ] `ledger_last_hash`
-- [ ] `ledger_last_time`
+- [x] `ledger_last_time`
 - [ ] `ledger_nonce`
 - [ ] `ledger_keylet`
 
