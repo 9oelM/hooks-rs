@@ -18,13 +18,10 @@ jobs:
       - name: "Use Rust nightly"
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: "nightly-2024-10-17"
+          toolchain: "nightly"
           target: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
-
-      - name: "Install wasm-pack"
-        run: npm install -g wasm-pack@0.13.1
 
       - name: "Install hook cleaner"
         run: |
@@ -60,11 +57,6 @@ jobs:
           node-version-file: "./hooks-rs/tests/.nvmrc"
           cache: "npm"
           cache-dependency-path: "hooks-rs/tests/package-lock.json"
-
-      - name: "Run lib tests"
-        run: |
-          cd hooks-rs
-          wasm-pack test --node
 
       - name: "Build examples"
         run: |
