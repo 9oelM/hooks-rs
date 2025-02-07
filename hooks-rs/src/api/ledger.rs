@@ -1,3 +1,5 @@
+use core::mem::MaybeUninit;
+
 use super::*;
 use crate::c;
 
@@ -21,12 +23,21 @@ pub fn ledger_last_time() -> i64 {
 
 /// Retreive the 32 byte namespace biased SHA512H of the last closed ledger
 #[inline(always)]
-pub fn ledger_last_hash(hash: &mut [u8]) -> Result<u64> {
-    buf_write(hash, c::ledger_last_hash)
+pub fn ledger_last_hash() -> Result<[u8; 32]> {
+    init_buffer_mut(|buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> =
+            unsafe { c::ledger_last_hash(buffer_mut_ptr as u32, 32_u32).into() };
+
+        result
+    })
 }
 
 /// Generate a 32 byte nonce for use in an emitted transaction
 #[inline(always)]
-pub fn ledger_nonce(n: &mut [u8]) -> Result<u64> {
-    buf_write(n, c::ledger_nonce)
+pub fn ledger_nonce() -> Result<[u8; 32]> {
+    init_buffer_mut(|buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe { c::ledger_nonce(buffer_mut_ptr as u32, 32_u32).into() };
+
+        result
+    })
 }

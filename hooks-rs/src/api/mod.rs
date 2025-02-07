@@ -607,7 +607,6 @@ type Api1ArgsU32 = unsafe extern "C" fn(u32) -> i64;
 type Api2ArgsU32 = unsafe extern "C" fn(u32, u32) -> i64;
 type Api3ArgsU32 = unsafe extern "C" fn(u32, u32, u32) -> i64;
 
-type BufWriter = Api2ArgsU32;
 type BufReader = Api2ArgsU32;
 type BufWriter1Arg = Api3ArgsU32;
 
@@ -621,13 +620,6 @@ fn api_1arg_call(arg: u32, fun: Api1ArgsU32) -> Result<u64> {
 #[inline(always)]
 fn api_3arg_call(arg_1: u32, arg_2: u32, arg_3: u32, fun: Api3ArgsU32) -> Result<u64> {
     let res = unsafe { fun(arg_1, arg_2, arg_3) };
-
-    res.into()
-}
-
-#[inline(always)]
-fn buf_write(buf_write: &mut [u8], fun: BufWriter) -> Result<u64> {
-    let res = unsafe { fun(buf_write.as_mut_ptr() as u32, buf_write.len() as u32) };
 
     res.into()
 }

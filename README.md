@@ -116,22 +116,6 @@ Control
 - [x] `accept`
 - [x] `rollback`
 
-Utilities
-
-- [x] `util_raddr`
-- [ ] `util_accid`
-- [ ] `util_verify`
-- [ ] `util_sha512h`
-- [ ] `util_keylet`
-
-Serialization
-
-- [ ] `sto_subfield`
-- [ ] `sto_subarray`
-- [ ] `sto_emplace`
-- [ ] `sto_erase`
-- [ ] `sto_validate`
-
 Emitted transaction
 
 - [ ] `etxn_burden`
@@ -166,33 +150,10 @@ Ledger
 
 - [x] `fee_base`
 - [x] `ledger_seq`
-- [ ] `ledger_last_hash`
+- [x] `ledger_last_hash`
 - [x] `ledger_last_time`
-- [ ] `ledger_nonce`
+- [x] `ledger_nonce`
 - [ ] `ledger_keylet`
-
-Hook context
-
-- [x] `hook_account`
-- [ ] `hook_hash`
-- [x] `hook_param`
-- [ ] `hook_param_set`
-- [ ] `hook_skip`
-- [ ] `hook_pos`
-- [ ] `hook_again`
-
-Slot
-
-- [ ] `slot`
-- [ ] `slot_clear`
-- [ ] `slot_count`
-- [ ] `slot_set`
-- [ ] `slot_size`
-- [ ] `slot_subarray`
-- [ ] `slot_subfield`
-- [ ] `slot_type`
-- [ ] `xpop_slot`
-- [ ] `slot_float`
 
 State
 
@@ -217,6 +178,46 @@ Originating transaction
 - [ ] `otxn_slot`
 - [x] `otxn_param`
 - [ ] `meta_slot`
+
+Utilities
+
+- [x] `util_raddr`
+- [ ] `util_accid`
+- [ ] `util_verify`
+- [ ] `util_sha512h`
+- [ ] `util_keylet`
+
+Hook context
+
+- [x] `hook_account`
+- [ ] `hook_hash`
+- [x] `hook_param`
+- [ ] `hook_param_set`
+- [ ] `hook_skip`
+- [ ] `hook_pos`
+- [ ] `hook_again`
+
+Serialization
+
+- [ ] `sto_subfield`
+- [ ] `sto_subarray`
+- [ ] `sto_emplace`
+- [ ] `sto_erase`
+- [ ] `sto_validate`
+
+
+Slot
+
+- [ ] `slot`
+- [ ] `slot_clear`
+- [ ] `slot_count`
+- [ ] `slot_set`
+- [ ] `slot_size`
+- [ ] `slot_subarray`
+- [ ] `slot_subfield`
+- [ ] `slot_type`
+- [ ] `xpop_slot`
+- [ ] `slot_float`
 
 </details>
 
