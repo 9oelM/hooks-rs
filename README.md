@@ -104,9 +104,9 @@ docker run \
   9oel/hooks-cli:latest hooks build
 ```
 
-## Supported functions
+## Tested functions
 
-Still, a lot of functions are WIP. Contributions are welcome.
+Most APIs are supported but yet to be tested. Contributions are welcome. The list below shows which features are tested and which ones are not.
 
 <details>
 <summary>Click to expand</summary>
@@ -212,8 +212,8 @@ Originating transaction
 - [ ] `otxn_burden`
 - [x] `otxn_field`
 - [ ] `otxn_generation`
-- [ ] `otxn_id`
-- [ ] `otxn_type`
+- [x] `otxn_id`
+- [x] `otxn_type`
 - [ ] `otxn_slot`
 - [x] `otxn_param`
 - [ ] `meta_slot`

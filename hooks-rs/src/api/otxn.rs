@@ -4,6 +4,15 @@ use crate::c;
 
 use super::*;
 
+/// Flags for the originating transaction ID
+#[derive(Copy, Clone)]
+pub enum OtxnIdFlag {
+    /// If 0: Write the canonical hash of the originating transaction.
+    Zero = 0,
+    /// If 1 AND the originating transaction is an EMIT_FAILURE: Write the canonical hash of the emitting transaction.
+    One = 1,
+}
+
 /// Get the burden of the originating transaction
 #[inline(always)]
 pub fn otxn_burden() -> i64 {
@@ -40,8 +49,15 @@ pub fn otxn_generation() -> i64 {
 
 /// Output the canonical hash of the originating transaction
 #[inline(always)]
-pub fn otxn_id(hash: &mut [u8], flags: u32) -> Result<u64> {
-    buf_write_1arg(hash, flags, c::otxn_id)
+pub fn otxn_id(flags: OtxnIdFlag) -> Result<[u8; 32]> {
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> =
+            unsafe { c::otxn_id(buffer_mut_ptr as u32, 32, flags.into()).into() };
+
+        result
+    };
+
+    init_buffer_mut(func)
 }
 
 /// Get the Transaction Type of the originating transaction
@@ -74,4 +90,10 @@ pub fn otxn_param<const PARAM_LEN: usize>(parameter_name: &[u8]) -> Result<[u8; 
     };
 
     init_buffer_mut(func)
+}
+
+impl From<OtxnIdFlag> for u32 {
+    fn from(flag: OtxnIdFlag) -> u32 {
+        flag as u32
+    }
 }
