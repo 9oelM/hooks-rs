@@ -57,3 +57,16 @@ pub fn hook_param<const HOOK_PARAM_LEN: usize>(
 
     init_buffer_mut(func)
 }
+
+/// Returns the position in the hook chain the currently executing hook occupies.
+/// Returns the position in the chain the currently executing hook occupies. The first position is 0.
+///
+/// # Example
+/// ```
+/// // hook_pos is 0 for the first hook in the chain
+/// let hook_pos = hook_pos();
+/// ```
+#[inline(always)]
+pub fn hook_pos() -> i64 {
+    unsafe { c::hook_pos() }
+}
