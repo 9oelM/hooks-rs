@@ -43,6 +43,8 @@ pub const STATE_KEY_LEN: usize = 32;
 pub const NONCE_LEN: usize = 32;
 /// Hash byte length
 pub const HASH_LEN: usize = 32;
+/// Hook Hash byte length
+pub const HOOK_HASH_LEN: usize = 32;
 /// Amount byte length
 pub const AMOUNT_LEN: usize = 48;
 /// Payment simple transaction byte length

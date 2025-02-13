@@ -190,11 +190,11 @@ Utilities
 Hook context
 
 - [x] `hook_account`
-- [ ] `hook_hash`
+- [x] `hook_hash`
 - [x] `hook_param`
 - [ ] `hook_param_set`
 - [ ] `hook_skip`
-- [ ] `hook_pos`
+- [x] `hook_pos`
 - [ ] `hook_again`
 
 Serialization

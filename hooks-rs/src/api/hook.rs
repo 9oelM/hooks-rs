@@ -3,6 +3,15 @@ use core::mem::MaybeUninit;
 use super::*;
 use crate::c;
 
+/// Meant to be used as an argument to `hook_hash` to specify the hook number.
+#[derive(Copy, Clone)]
+pub enum HookNumber {
+    /// The currently executing hook
+    CurrentHook,
+    /// The position in the hook chain the hook is located at,
+    Custom(i32),
+}
+
 /// Retreive the 20 byte Account ID the Hook is executing on
 ///
 /// # Example
@@ -69,4 +78,37 @@ pub fn hook_param<const HOOK_PARAM_LEN: usize>(
 #[inline(always)]
 pub fn hook_pos() -> i64 {
     unsafe { c::hook_pos() }
+}
+
+/// Retreive the 32 byte namespace biased SHA512H of the currently executing Hook
+///
+/// # Example
+/// ```
+/// let hook_hash = hook_hash(HookNumber::CurrentHook);
+/// ```
+#[inline(always)]
+pub fn hook_hash(hook_number: HookNumber) -> Result<[u8; HOOK_HASH_LEN]> {
+    let func = |buffer_mut_ptr: *mut MaybeUninit<u8>| {
+        let result: Result<u64> = unsafe {
+            c::hook_hash(
+                buffer_mut_ptr as u32,
+                HOOK_HASH_LEN as u32,
+                hook_number.into(),
+            )
+            .into()
+        };
+
+        result
+    };
+
+    init_buffer_mut(func)
+}
+
+impl From<HookNumber> for i32 {
+    fn from(hook_no: HookNumber) -> i32 {
+        match hook_no {
+            HookNumber::CurrentHook => -1,
+            HookNumber::Custom(hook_no) => hook_no,
+        }
+    }
 }
